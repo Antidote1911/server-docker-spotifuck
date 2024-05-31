@@ -1,0 +1,12 @@
+services:
+    spotifuck:
+        build: ./
+        container_name: spotifuck
+        restart: always
+        ports:
+            - 3350:3350
+        environment:
+            - SERVER_NAME=Antiplex Spotifuck # pre defined server name
+            - SERVER_LOCK=true # When true AND name/type/url are set, only username/password can be toggled
+            - SERVER_TYPE=navidrome # navidrome also works
+            - SERVER_URL=https://navidrome.antiplex.fr:443 # http://address:port

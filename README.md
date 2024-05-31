@@ -1,1 +1,3 @@
-# server-docker-spotifuck
+# Spotifuck
+
+Feishin modifications for personnal use
