@@ -18,6 +18,7 @@ import {
     RiAddBoxFill,
     RiAddCircleFill,
     RiArrowDownLine,
+    RiArrowGoForwardLine,
     RiArrowRightSFill,
     RiArrowUpLine,
     RiDeleteBinFill,
@@ -29,6 +30,9 @@ import {
     RiCloseCircleLine,
     RiShareForwardFill,
     RiInformationFill,
+    RiRadio2Fill,
+    RiDownload2Line,
+    RiShuffleFill,
 } from 'react-icons/ri';
 import { AnyLibraryItems, LibraryItem, ServerType, AnyLibraryItem } from '/@/renderer/api/types';
 import {
@@ -50,14 +54,20 @@ import { useDeletePlaylist } from '/@/renderer/features/playlists';
 import { useRemoveFromPlaylist } from '/@/renderer/features/playlists/mutations/remove-from-playlist-mutation';
 import { useCreateFavorite, useDeleteFavorite, useSetRating } from '/@/renderer/features/shared';
 import {
+    getServerById,
     useAuthStore,
     useCurrentServer,
     usePlayerStore,
     useQueueControls,
+    useSettingsStore,
 } from '/@/renderer/store';
 import { usePlaybackType } from '/@/renderer/store/settings.store';
 import { Play, PlaybackType } from '/@/renderer/types';
 import { ItemDetailsModal } from '/@/renderer/features/item-details/components/item-details-modal';
+import { updateSong } from '/@/renderer/features/player/update-remote-song';
+import { controller } from '/@/renderer/api/controller';
+import { api } from '/@/renderer/api';
+import { setQueue, setQueueNext } from '/@/renderer/utils/set-transcoded-queue-data';
 
 type ContextMenuContextProps = {
     closeContextMenu: () => void;
@@ -85,14 +95,14 @@ const JELLYFIN_IGNORED_MENU_ITEMS: ContextMenuItemType[] = ['setRating', 'shareI
 // const NAVIDROME_IGNORED_MENU_ITEMS: ContextMenuItemType[] = [];
 // const SUBSONIC_IGNORED_MENU_ITEMS: ContextMenuItemType[] = [];
 
-const mpvPlayer = isElectron() ? window.electron.mpvPlayer : null;
-const remote = isElectron() ? window.electron.remote : null;
+const utils = isElectron() ? window.electron.utils : null;
 
 export interface ContextMenuProviderProps {
     children: ReactNode;
 }
 
 export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
+    const disabledItems = useSettingsStore((state) => state.general.disabledContextMenu);
     const { t } = useTranslation();
     const [opened, setOpened] = useState(false);
     const clickOutsideRef = useClickOutside(() => setOpened(false));
@@ -129,7 +139,7 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
             } = args;
 
             const serverType = data[0]?.serverType || useAuthStore.getState().currentServer?.type;
-            let validMenuItems = menuItems;
+            let validMenuItems = menuItems.filter((item) => !disabledItems[item.id]);
 
             if (serverType === ServerType.JELLYFIN) {
                 validMenuItems = menuItems.filter(
@@ -139,7 +149,7 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
 
             // If the context menu dimension can't be automatically calculated, calculate it manually
             // This is a hacky way since resize observer may not automatically recalculate when not rendered
-            const menuHeight = menuRect.height || (menuItems.length + 1) * 50;
+            const menuHeight = menuRect.height || (validMenuItems.length + 1) * 40;
             const menuWidth = menuRect.width || 220;
 
             const shouldReverseY = yPos + menuHeight > viewport.height;
@@ -161,7 +171,7 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
             });
             setOpened(true);
         },
-        [menuRect.height, menuRect.width, setCtx, viewport.height, viewport.width],
+        [disabledItems, menuRect.height, menuRect.width, setCtx, viewport.height, viewport.width],
     );
 
     const closeContextMenu = useCallback(() => {
@@ -284,13 +294,16 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
         if (ctx.dataNodes) {
             const nodesToFavorite = ctx.dataNodes.filter((item) => !item.data.userFavorite);
 
-            const nodesByServerId = nodesToFavorite.reduce((acc, node) => {
-                if (!acc[node.data.serverId]) {
-                    acc[node.data.serverId] = [];
-                }
-                acc[node.data.serverId].push(node);
-                return acc;
-            }, {} as Record<string, RowNode<any>[]>);
+            const nodesByServerId = nodesToFavorite.reduce(
+                (acc, node) => {
+                    if (!acc[node.data.serverId]) {
+                        acc[node.data.serverId] = [];
+                    }
+                    acc[node.data.serverId].push(node);
+                    return acc;
+                },
+                {} as Record<string, RowNode<any>[]>,
+            );
 
             for (const serverId of Object.keys(nodesByServerId)) {
                 const nodes = nodesByServerId[serverId];
@@ -321,13 +334,16 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
             }
         } else {
             const itemsToFavorite = ctx.data.filter((item) => !item.userFavorite);
-            const itemsByServerId = (itemsToFavorite as any[]).reduce((acc, item) => {
-                if (!acc[item.serverId]) {
-                    acc[item.serverId] = [];
-                }
-                acc[item.serverId].push(item);
-                return acc;
-            }, {} as Record<string, AnyLibraryItems>);
+            const itemsByServerId = (itemsToFavorite as any[]).reduce(
+                (acc, item) => {
+                    if (!acc[item.serverId]) {
+                        acc[item.serverId] = [];
+                    }
+                    acc[item.serverId].push(item);
+                    return acc;
+                },
+                {} as Record<string, AnyLibraryItems>,
+            );
 
             for (const serverId of Object.keys(itemsByServerId)) {
                 const items = itemsByServerId[serverId];
@@ -358,13 +374,16 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
 
         if (ctx.dataNodes) {
             const nodesToUnfavorite = ctx.dataNodes.filter((item) => item.data.userFavorite);
-            const nodesByServerId = nodesToUnfavorite.reduce((acc, node) => {
-                if (!acc[node.data.serverId]) {
-                    acc[node.data.serverId] = [];
-                }
-                acc[node.data.serverId].push(node);
-                return acc;
-            }, {} as Record<string, RowNode<any>[]>);
+            const nodesByServerId = nodesToUnfavorite.reduce(
+                (acc, node) => {
+                    if (!acc[node.data.serverId]) {
+                        acc[node.data.serverId] = [];
+                    }
+                    acc[node.data.serverId].push(node);
+                    return acc;
+                },
+                {} as Record<string, RowNode<any>[]>,
+            );
 
             for (const serverId of Object.keys(nodesByServerId)) {
                 const idsToUnfavorite = nodesByServerId[serverId].map((node) => node.data.id);
@@ -387,13 +406,16 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
             }
         } else {
             const itemsToUnfavorite = ctx.data.filter((item) => item.userFavorite);
-            const itemsByServerId = (itemsToUnfavorite as any[]).reduce((acc, item) => {
-                if (!acc[item.serverId]) {
-                    acc[item.serverId] = [];
-                }
-                acc[item.serverId].push(item);
-                return acc;
-            }, {} as Record<string, AnyLibraryItems>);
+            const itemsByServerId = (itemsToUnfavorite as any[]).reduce(
+                (acc, item) => {
+                    if (!acc[item.serverId]) {
+                        acc[item.serverId] = [];
+                    }
+                    acc[item.serverId].push(item);
+                    return acc;
+                },
+                {} as Record<string, AnyLibraryItems>,
+            );
 
             for (const serverId of Object.keys(itemsByServerId)) {
                 const idsToUnfavorite = itemsByServerId[serverId].map(
@@ -473,17 +495,24 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
     const removeFromPlaylistMutation = useRemoveFromPlaylist();
 
     const handleRemoveFromPlaylist = useCallback(() => {
-        const songId =
-            (serverType === ServerType.NAVIDROME || ServerType.JELLYFIN
-                ? ctx.dataNodes?.map((node) => node.data.playlistItemId)
-                : ctx.dataNodes?.map((node) => node.data.id)) || [];
+        let songId: string[] | undefined;
+
+        switch (serverType) {
+            case ServerType.NAVIDROME:
+            case ServerType.JELLYFIN:
+                songId = ctx.dataNodes?.map((node) => node.data.playlistItemId);
+                break;
+            case ServerType.SUBSONIC:
+                songId = ctx.dataNodes?.map((node) => node.rowIndex!.toString());
+                break;
+        }
 
         const confirm = () => {
             removeFromPlaylistMutation.mutate(
                 {
                     query: {
                         id: ctx.context.playlistId,
-                        songId,
+                        songId: songId || [],
                     },
                     serverId: ctx.data?.[0]?.serverId,
                 },
@@ -581,7 +610,19 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
     );
 
     const playbackType = usePlaybackType();
-    const { moveToBottomOfQueue, moveToTopOfQueue, removeFromQueue } = useQueueControls();
+    const { moveToNextOfQueue, moveToBottomOfQueue, moveToTopOfQueue, removeFromQueue } =
+        useQueueControls();
+
+    const handleMoveToNext = useCallback(() => {
+        const uniqueIds = ctx.dataNodes?.map((row) => row.data.uniqueId);
+        if (!uniqueIds?.length) return;
+
+        const playerData = moveToNextOfQueue(uniqueIds);
+
+        if (playbackType === PlaybackType.LOCAL) {
+            setQueueNext(playerData);
+        }
+    }, [ctx.dataNodes, moveToNextOfQueue, playbackType]);
 
     const handleMoveToBottom = useCallback(() => {
         const uniqueIds = ctx.dataNodes?.map((row) => row.data.uniqueId);
@@ -590,7 +631,7 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
         const playerData = moveToBottomOfQueue(uniqueIds);
 
         if (playbackType === PlaybackType.LOCAL) {
-            mpvPlayer!.setQueueNext(playerData);
+            setQueueNext(playerData);
         }
     }, [ctx.dataNodes, moveToBottomOfQueue, playbackType]);
 
@@ -601,7 +642,7 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
         const playerData = moveToTopOfQueue(uniqueIds);
 
         if (playbackType === PlaybackType.LOCAL) {
-            mpvPlayer!.setQueueNext(playerData);
+            setQueueNext(playerData);
         }
     }, [ctx.dataNodes, moveToTopOfQueue, playbackType]);
 
@@ -631,16 +672,16 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
 
         if (playbackType === PlaybackType.LOCAL) {
             if (isCurrentSongRemoved) {
-                mpvPlayer!.setQueue(playerData);
+                setQueue(playerData);
             } else {
-                mpvPlayer!.setQueueNext(playerData);
+                setQueueNext(playerData);
             }
         }
 
         ctx.tableApi?.redrawRows();
 
         if (isCurrentSongRemoved) {
-            remote?.updateSong({ song: playerData.current.song });
+            updateSong(playerData.current.song);
         }
     }, [ctx.dataNodes, ctx.tableApi, playbackType, removeFromQueue]);
 
@@ -657,6 +698,34 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
             title: t('page.contextMenu.showDetails', { postProcess: 'titleCase' }),
         });
     }, [ctx.data, t]);
+
+    const handleSimilar = useCallback(async () => {
+        const item = ctx.data[0];
+        const songs = await controller.getSimilarSongs({
+            apiClientProps: {
+                server: getServerById(item.serverId),
+                signal: undefined,
+            },
+            query: { albumArtistIds: item.albumArtistIds, songId: item.id },
+        });
+        if (songs) {
+            handlePlayQueueAdd?.({ byData: [ctx.data[0], ...songs], playType: Play.NOW });
+        }
+    }, [ctx, handlePlayQueueAdd]);
+
+    const handleDownload = useCallback(() => {
+        const item = ctx.data[0];
+        const url = api.controller.getDownloadUrl({
+            apiClientProps: { server },
+            query: { id: item.id },
+        });
+
+        if (utils) {
+            utils.download(url!);
+        } else {
+            window.open(url, '_blank');
+        }
+    }, [ctx.data, server]);
 
     const contextMenuItems: Record<ContextMenuItemType, ContextMenuItem> = useMemo(() => {
         return {
@@ -689,11 +758,24 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
                 leftIcon: <RiCloseCircleLine size="1.1rem" />,
                 onClick: handleDeselectAll,
             },
+            download: {
+                disabled: ctx.data?.length !== 1,
+                id: 'download',
+                label: t('page.contextMenu.download', { postProcess: 'sentenceCase' }),
+                leftIcon: <RiDownload2Line size="1.1rem" />,
+                onClick: handleDownload,
+            },
             moveToBottomOfQueue: {
                 id: 'moveToBottomOfQueue',
                 label: t('page.contextMenu.moveToBottom', { postProcess: 'sentenceCase' }),
                 leftIcon: <RiArrowDownLine size="1.1rem" />,
                 onClick: handleMoveToBottom,
+            },
+            moveToNextOfQueue: {
+                id: 'moveToNext',
+                label: t('page.contextMenu.moveToNext', { postProcess: 'sentenceCase' }),
+                leftIcon: <RiArrowGoForwardLine size="1.1rem" />,
+                onClick: handleMoveToNext,
             },
             moveToTopOfQueue: {
                 id: 'moveToTopOfQueue',
@@ -718,6 +800,18 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
                 label: t('page.contextMenu.addNext', { postProcess: 'sentenceCase' }),
                 leftIcon: <RiAddCircleFill size="1.1rem" />,
                 onClick: () => handlePlay(Play.NEXT),
+            },
+            playShuffled: {
+                id: 'playShuffled',
+                label: t('page.contextMenu.playShuffled', { postProcess: 'sentenceCase' }),
+                leftIcon: <RiShuffleFill size="1.1rem" />,
+                onClick: () => handlePlay(Play.SHUFFLE),
+            },
+            playSimilarSongs: {
+                id: 'playSimilarSongs',
+                label: t('page.contextMenu.playSimilarSongs', { postProcess: 'sentenceCase' }),
+                leftIcon: <RiRadio2Fill size="1.1rem" />,
+                onClick: handleSimilar,
             },
             removeFromFavorites: {
                 id: 'removeFromFavorites',
@@ -801,7 +895,7 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
                     },
                 ],
                 id: 'setRating',
-                label: 'Set rating',
+                label: t('action.setRating', { postProcess: 'sentenceCase' }),
                 leftIcon: <RiStarFill size="1.1rem" />,
                 onClick: () => {},
                 rightIcon: <RiArrowRightSFill size="1.2rem" />,
@@ -827,17 +921,20 @@ export const ContextMenuProvider = ({ children }: ContextMenuProviderProps) => {
         handleAddToPlaylist,
         openDeletePlaylistModal,
         handleDeselectAll,
+        ctx.data,
+        handleDownload,
+        handleMoveToNext,
         handleMoveToBottom,
         handleMoveToTop,
+        handleSimilar,
         handleRemoveFromFavorites,
         handleRemoveFromPlaylist,
         handleRemoveSelected,
-        ctx.data,
+        server,
+        handleShareItem,
         handleOpenItemDetails,
         handlePlay,
         handleUpdateRating,
-        handleShareItem,
-        server,
     ]);
 
     const mergedRef = useMergedRef(ref, clickOutsideRef);

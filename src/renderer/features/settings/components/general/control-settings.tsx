@@ -71,14 +71,15 @@ export const ControlSettings = () => {
                 <NumberInput
                     defaultValue={settings.albumArtRes || undefined}
                     max={2500}
-                    min={175}
                     placeholder="0"
                     rightSection="px"
+                    value={settings.albumArtRes ?? 0}
                     width={75}
                     onBlur={(e) => {
-                        const newVal = e.currentTarget.value
-                            ? Math.min(Math.max(Number(e.currentTarget.value), 175), 2500)
-                            : null;
+                        const newVal =
+                            e.currentTarget.value !== '0'
+                                ? Math.min(Math.max(Number(e.currentTarget.value), 175), 2500)
+                                : null;
                         setSettings({ general: { ...settings, albumArtRes: newVal } });
                     }}
                 />
@@ -214,6 +215,13 @@ export const ControlSettings = () => {
                             }),
                             value: Play.LAST,
                         },
+                        {
+                            label: t('setting.playButtonBehavior', {
+                                context: 'optionPlayShuffled',
+                                postProcess: 'titleCase',
+                            }),
+                            value: Play.SHUFFLE,
+                        },
                     ]}
                     defaultValue={settings.playButtonBehavior}
                     onChange={(e) =>
@@ -232,6 +240,28 @@ export const ControlSettings = () => {
             }),
             isHidden: false,
             title: t('setting.playButtonBehavior', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Switch
+                    aria-label="Whether double clicking a track should queue all matching songs"
+                    defaultChecked={settings.doubleClickQueueAll}
+                    onChange={(e) =>
+                        setSettings({
+                            general: {
+                                ...settings,
+                                doubleClickQueueAll: e.currentTarget.checked,
+                            },
+                        })
+                    }
+                />
+            ),
+            description: t('setting.doubleClickBehavior', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: false,
+            title: t('setting.doubleClickBehavior', { postProcess: 'sentenceCase' }),
         },
         {
             control: (
@@ -302,6 +332,29 @@ export const ControlSettings = () => {
         },
         {
             control: (
+                <NumberInput
+                    defaultValue={settings.volumeWidth}
+                    max={180}
+                    min={30}
+                    placeholder="0"
+                    rightSection="px"
+                    width={75}
+                    onBlur={(e) => {
+                        setSettings({
+                            general: { ...settings, volumeWidth: Number(e.currentTarget.value) },
+                        });
+                    }}
+                />
+            ),
+            description: t('setting.volumeWidth', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: false,
+            title: t('setting.volumeWidth', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
                 <Switch
                     defaultChecked={settings.resume}
                     onChange={(e) => {
@@ -321,28 +374,6 @@ export const ControlSettings = () => {
             }),
             isHidden: !isElectron(),
             title: t('setting.savePlayQueue', { postProcess: 'sentenceCase' }),
-        },
-        {
-            control: (
-                <Switch
-                    aria-label="Go to playlist songs page by default"
-                    defaultChecked={settings.defaultFullPlaylist}
-                    onChange={(e) =>
-                        setSettings({
-                            general: {
-                                ...settings,
-                                defaultFullPlaylist: e.currentTarget.checked,
-                            },
-                        })
-                    }
-                />
-            ),
-            description: t('setting.skipPlaylistPage', {
-                context: 'description',
-                postProcess: 'sentenceCase',
-            }),
-            isHidden: false,
-            title: t('setting.skipPlaylistPage', { postProcess: 'sentenceCase' }),
         },
         {
             control: (
@@ -420,6 +451,76 @@ export const ControlSettings = () => {
             }),
             isHidden: false,
             title: t('setting.homeFeature', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Switch
+                    aria-label={t('setting.albumBackground', { postProcess: 'sentenceCase' })}
+                    defaultChecked={settings.albumBackground}
+                    onChange={(e) =>
+                        setSettings({
+                            general: {
+                                ...settings,
+                                albumBackground: e.currentTarget.checked,
+                            },
+                        })
+                    }
+                />
+            ),
+            description: t('setting.albumBackground', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: false,
+            title: t('setting.albumBackground', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Slider
+                    defaultValue={settings.albumBackgroundBlur}
+                    label={(e) => `${e} rem`}
+                    max={6}
+                    min={0}
+                    step={0.5}
+                    w={100}
+                    onChangeEnd={(e) => {
+                        setSettings({
+                            general: {
+                                ...settings,
+                                albumBackgroundBlur: e,
+                            },
+                        });
+                    }}
+                />
+            ),
+            description: t('setting.albumBackgroundBlur', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: false,
+            title: t('setting.albumBackgroundBlur', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Switch
+                    aria-label={t('setting.playerbarOpenDrawer ', { postProcess: 'sentenceCase' })}
+                    defaultChecked={settings.playerbarOpenDrawer}
+                    onChange={(e) =>
+                        setSettings({
+                            general: {
+                                ...settings,
+                                playerbarOpenDrawer: e.currentTarget.checked,
+                            },
+                        })
+                    }
+                />
+            ),
+            description: t('setting.playerbarOpenDrawer', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: false,
+            title: t('setting.playerbarOpenDrawer', { postProcess: 'sentenceCase' }),
         },
     ];
 

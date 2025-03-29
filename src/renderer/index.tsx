@@ -26,7 +26,7 @@ export function createIDBPersister(idbValidKey: IDBValidKey = 'reactQuery') {
     } as Persister;
 }
 
-const indexedDbPersister = createIDBPersister('spotifuck');
+const indexedDbPersister = createIDBPersister('feishin');
 
 const container = document.getElementById('root')! as HTMLElement;
 const root = createRoot(container);
@@ -35,7 +35,7 @@ root.render(
     <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{
-            buster: 'spotifuck',
+            buster: 'feishin',
             dehydrateOptions: {
                 dehydrateQueries: true,
                 shouldDehydrateQuery: (query) => {

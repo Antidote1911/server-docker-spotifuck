@@ -16,7 +16,7 @@ export const enableMediaKeys = (window: BrowserWindow | null) => {
         if (!trusted && !shownWarning) {
             window?.webContents.send('toast-from-main', {
                 message:
-                    'Spotifuck is not a trusted accessibility client. Media keys will not work until this setting is changed',
+                    'Feishin is not a trusted accessibility client. Media keys will not work until this setting is changed',
                 type: 'warning',
             });
             store.set('shown_accessibility_warning', true);

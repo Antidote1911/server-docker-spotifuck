@@ -1,13 +1,14 @@
 import { ipcMain } from 'electron';
 import Player from 'mpris-service';
-import { PlayerRepeat, PlayerStatus, SongUpdate } from '../../../renderer/types';
+import { PlayerRepeat, PlayerStatus } from '../../../renderer/types';
 import { getMainWindow } from '../../main';
+import { QueueSong } from '/@/renderer/api/types';
 
 const mprisPlayer = Player({
-    identity: 'Spotifuck',
+    identity: 'Feishin',
     maximumRate: 1.0,
     minimumRate: 1.0,
-    name: 'Spotifuck',
+    name: 'Feishin',
     rate: 1.0,
     supportedInterfaces: ['player'],
     supportedMimeTypes: ['audio/mpeg', 'application/ogg'],
@@ -105,7 +106,7 @@ mprisPlayer.on('seek', (event: number) => {
     });
 });
 
-ipcMain.on('mpris-update-position', (_event, arg) => {
+ipcMain.on('update-position', (_event, arg: number) => {
     mprisPlayer.getPosition = () => arg * 1e6;
 });
 
@@ -115,6 +116,10 @@ ipcMain.on('mpris-update-seek', (_event, arg) => {
 
 ipcMain.on('update-volume', (_event, volume) => {
     mprisPlayer.volume = Number(volume) / 100;
+});
+
+ipcMain.on('update-playback', (_event, status: PlayerStatus) => {
+    mprisPlayer.playbackStatus = status === PlayerStatus.PLAYING ? 'Playing' : 'Paused';
 });
 
 const REPEAT_TO_MPRIS: Record<PlayerRepeat, string> = {
@@ -131,21 +136,9 @@ ipcMain.on('update-shuffle', (_event, shuffle: boolean) => {
     mprisPlayer.shuffle = shuffle;
 });
 
-ipcMain.on('update-song', (_event, args: SongUpdate) => {
-    const { song, status, repeat, shuffle } = args || {};
-
+ipcMain.on('update-song', (_event, song: QueueSong | undefined) => {
     try {
-        mprisPlayer.playbackStatus = status === PlayerStatus.PLAYING ? 'Playing' : 'Paused';
-
-        if (repeat) {
-            mprisPlayer.loopStatus = REPEAT_TO_MPRIS[repeat];
-        }
-
-        if (shuffle) {
-            mprisPlayer.shuffle = shuffle;
-        }
-
-        if (!song) {
+        if (!song?.id) {
             mprisPlayer.metadata = {};
             return;
         }

@@ -22,7 +22,6 @@ html {
     background: var(--content-bg);
     font-family: var(--content-font-family);
     font-size: var(--root-font-size);
-    user-select: none;
 }
 
 @media only screen and (max-width: 639px) {
@@ -76,8 +75,6 @@ button {
 }
 
 .hide-scrollbar {
-    scrollbar-color: transparent transparent;
-
     &::-webkit-scrollbar-track {
         background: transparent;
     }

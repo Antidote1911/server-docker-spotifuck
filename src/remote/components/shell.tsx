@@ -41,7 +41,7 @@ export const Shell = () => {
                                 sm={6}
                                 xs={0}
                             >
-                                <Title ta="center">Spotifuck Remote</Title>
+                                <Title ta="center">Feishin Remote</Title>
                             </Grid.Col>
                         </MediaQuery>
 

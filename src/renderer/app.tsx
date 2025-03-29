@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { ModuleRegistry } from '@ag-grid-community/core';
 import { InfiniteRowModelModule } from '@ag-grid-community/infinite-row-model';
@@ -20,12 +20,16 @@ import { ContextMenuProvider } from '/@/renderer/features/context-menu';
 import { useHandlePlayQueueAdd } from '/@/renderer/features/player/hooks/use-handle-playqueue-add';
 import { PlayQueueHandlerContext } from '/@/renderer/features/player';
 import { getMpvProperties } from '/@/renderer/features/settings/components/playback/mpv-settings';
-import { PlayerState, usePlayerStore, useQueueControls } from '/@/renderer/store';
-import { FontType, PlaybackType, PlayerStatus } from '/@/renderer/types';
+import { PlayerState, useCssSettings, usePlayerStore, useQueueControls } from '/@/renderer/store';
+import { FontType, PlaybackType, PlayerStatus, WebAudio } from '/@/renderer/types';
 import '@ag-grid-community/styles/ag-grid.css';
+import { WebAudioContext } from '/@/renderer/features/player/context/webaudio-context';
 import { useDiscordRpc } from '/@/renderer/features/discord-rpc/use-discord-rpc';
 import i18n from '/@/i18n/i18n';
 import { useServerVersion } from '/@/renderer/hooks/use-server-version';
+import { updateSong } from '/@/renderer/features/player/update-remote-song';
+import { sanitizeCss } from '/@/renderer/utils/sanitize';
+import { setQueue } from '/@/renderer/utils/set-transcoded-queue-data';
 
 ModuleRegistry.registerModules([ClientSideRowModelModule, InfiniteRowModelModule]);
 
@@ -42,12 +46,14 @@ export const App = () => {
     const language = useSettingsStore((store) => store.general.language);
     const nativeImageAspect = useSettingsStore((store) => store.general.nativeAspectRatio);
     const { builtIn, custom, system, type } = useSettingsStore((state) => state.font);
+    const { enabled, content } = useCssSettings();
     const { type: playbackType } = usePlaybackSettings();
     const { bindings } = useHotkeySettings();
     const handlePlayQueueAdd = useHandlePlayQueueAdd();
     const { clearQueue, restoreQueue } = useQueueControls();
     const remoteSettings = useRemoteSettings();
     const textStyleRef = useRef<HTMLStyleElement>();
+    const cssRef = useRef<HTMLStyleElement>();
     useDiscordRpc();
     useServerVersion();
 
@@ -78,13 +84,35 @@ export const App = () => {
             textStyleRef.current.textContent = `
             @font-face {
                 font-family: "dynamic-font";
-                src: url("spotifuck://${custom}");
+                src: url("feishin://${custom}");
             }`;
         } else {
             const root = document.documentElement;
             root.style.setProperty('--content-font-family', builtIn);
         }
     }, [builtIn, custom, system, type]);
+
+    const [webAudio, setWebAudio] = useState<WebAudio>();
+
+    useEffect(() => {
+        if (enabled && content) {
+            // Yes, CSS is sanitized here as well. Prevent a suer from changing the
+            // localStorage to bypass sanitizing.
+            const sanitized = sanitizeCss(content);
+            if (!cssRef.current) {
+                cssRef.current = document.createElement('style');
+                document.body.appendChild(cssRef.current);
+            }
+
+            cssRef.current.textContent = sanitized;
+
+            return () => {
+                cssRef.current!.textContent = '';
+            };
+        }
+
+        return () => {};
+    }, [content, enabled]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -93,12 +121,16 @@ export const App = () => {
 
     useEffect(() => {
         const root = document.documentElement;
-        root.style.setProperty('--image-fit', nativeImageAspect ? 'scale-down' : 'cover');
+        root.style.setProperty('--image-fit', nativeImageAspect ? 'contain' : 'cover');
     }, [nativeImageAspect]);
 
     const providerValue = useMemo(() => {
         return { handlePlayQueueAdd };
     }, [handlePlayQueueAdd]);
+
+    const webAudioProvider = useMemo(() => {
+        return { setWebAudio, webAudio };
+    }, [webAudio]);
 
     // Start the mpv instance on startup
     useEffect(() => {
@@ -111,7 +143,7 @@ export const App = () => {
                 if (!isRunning) {
                     const extraParameters = useSettingsStore.getState().playback.mpvExtraParameters;
                     const properties: Record<string, any> = {
-                        speed: usePlayerStore.getState().current.speed,
+                        speed: usePlayerStore.getState().speed,
                         ...getMpvProperties(useSettingsStore.getState().playback.mpvProperties),
                     };
 
@@ -161,8 +193,9 @@ export const App = () => {
             utils.onRestoreQueue((_event: any, data) => {
                 const playerData = restoreQueue(data);
                 if (playbackType === PlaybackType.LOCAL) {
-                    mpvPlayer!.setQueue(playerData, true);
+                    setQueue(playerData, true);
                 }
+                updateSong(playerData.current.song);
             });
         }
 
@@ -252,7 +285,9 @@ export const App = () => {
         >
             <PlayQueueHandlerContext.Provider value={providerValue}>
                 <ContextMenuProvider>
-                    <AppRouter />
+                    <WebAudioContext.Provider value={webAudioProvider}>
+                        <AppRouter />
+                    </WebAudioContext.Provider>{' '}
                 </ContextMenuProvider>
             </PlayQueueHandlerContext.Provider>
             <IsUpdatedDialog />

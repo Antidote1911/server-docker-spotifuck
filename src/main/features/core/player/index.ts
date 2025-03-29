@@ -1,9 +1,10 @@
 import console from 'console';
+import { rm } from 'fs/promises';
+import { pid } from 'node:process';
 import { app, ipcMain } from 'electron';
 import uniq from 'lodash/uniq';
 import MpvAPI from 'node-mpv';
 import { getMainWindow, sendToastToRenderer } from '../../../main';
-import { PlayerData } from '/@/renderer/store';
 import { createLog, isWindows } from '../../../utils';
 import { store } from '../settings';
 
@@ -18,6 +19,7 @@ declare module 'node-mpv';
 // }
 
 let mpvInstance: MpvAPI | null = null;
+const socketPath = isWindows() ? `\\\\.\\pipe\\mpvserver-${pid}` : `/tmp/node-mpv-${pid}.sock`;
 
 const NodeMpvErrorCode = {
     0: 'Unable to load file or stream',
@@ -62,7 +64,6 @@ const mpvLog = (
 };
 
 const MPV_BINARY_PATH = store.get('mpv_path') as string | undefined;
-const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 const prefetchPlaylistParams = [
     '--prefetch-playlist=no',
@@ -89,14 +90,12 @@ const createMpv = async (data: {
 
     const params = uniq([...DEFAULT_MPV_PARAMETERS(extraParameters), ...(extraParameters || [])]);
 
-    const extra = isDevelopment ? '-dev' : '';
-
     const mpv = new MpvAPI(
         {
             audio_only: true,
             auto_restart: false,
             binary: binaryPath || MPV_BINARY_PATH || undefined,
-            socket: isWindows() ? `\\\\.\\pipe\\mpvserver${extra}` : `/tmp/node-mpv${extra}.sock`,
+            socket: socketPath,
             time_update: 1,
         },
         params,
@@ -147,6 +146,16 @@ const createMpv = async (data: {
 
 export const getMpvInstance = () => {
     return mpvInstance;
+};
+
+const quit = async () => {
+    const instance = getMpvInstance();
+    if (instance) {
+        await instance.quit();
+        if (!isWindows()) {
+            await rm(socketPath);
+        }
+    }
 };
 
 const setAudioPlayerFallback = (isError: boolean) => {
@@ -216,7 +225,7 @@ ipcMain.handle(
 ipcMain.on('player-quit', async () => {
     try {
         await getMpvInstance()?.stop();
-        await getMpvInstance()?.quit();
+        await quit();
     } catch (err: NodeMpvError | any) {
         mpvLog({ action: 'Failed to quit mpv' }, err);
     } finally {
@@ -305,8 +314,8 @@ ipcMain.on('player-seek-to', async (_event, time: number) => {
 });
 
 // Sets the queue in position 0 and 1 to the given data. Used when manually starting a song or using the next/prev buttons
-ipcMain.on('player-set-queue', async (_event, data: PlayerData, pause?: boolean) => {
-    if (!data.queue.current?.id && !data.queue.next?.id) {
+ipcMain.on('player-set-queue', async (_event, current?: string, next?: string, pause?: boolean) => {
+    if (!current && !next) {
         try {
             await getMpvInstance()?.clearPlaylist();
             await getMpvInstance()?.pause();
@@ -317,15 +326,15 @@ ipcMain.on('player-set-queue', async (_event, data: PlayerData, pause?: boolean)
     }
 
     try {
-        if (data.queue.current?.streamUrl) {
-            await getMpvInstance()
-                ?.load(data.queue.current.streamUrl, 'replace')
-                .catch(() => {
-                    getMpvInstance()?.play();
-                });
+        if (current) {
+            try {
+                await getMpvInstance()?.load(current, 'replace');
+            } catch (error) {
+                await getMpvInstance()?.play();
+            }
 
-            if (data.queue.next?.streamUrl) {
-                await getMpvInstance()?.load(data.queue.next.streamUrl, 'append');
+            if (next) {
+                await getMpvInstance()?.load(next, 'append');
             }
         }
 
@@ -341,7 +350,7 @@ ipcMain.on('player-set-queue', async (_event, data: PlayerData, pause?: boolean)
 });
 
 // Replaces the queue in position 1 to the given data
-ipcMain.on('player-set-queue-next', async (_event, data: PlayerData) => {
+ipcMain.on('player-set-queue-next', async (_event, url?: string) => {
     try {
         const size = await getMpvInstance()?.getPlaylistSize();
 
@@ -353,8 +362,8 @@ ipcMain.on('player-set-queue-next', async (_event, data: PlayerData) => {
             await getMpvInstance()?.playlistRemove(1);
         }
 
-        if (data.queue.next?.streamUrl) {
-            await getMpvInstance()?.load(data.queue.next.streamUrl, 'append');
+        if (url) {
+            await getMpvInstance()?.load(url, 'append');
         }
     } catch (err: NodeMpvError | any) {
         mpvLog({ action: `Failed to set play queue` }, err);
@@ -362,7 +371,7 @@ ipcMain.on('player-set-queue-next', async (_event, data: PlayerData) => {
 });
 
 // Sets the next song in the queue when reaching the end of the queue
-ipcMain.on('player-auto-next', async (_event, data: PlayerData) => {
+ipcMain.on('player-auto-next', async (_event, url?: string) => {
     // Always keep the current song as position 0 in the mpv queue
     // This allows us to easily set update the next song in the queue without
     // disturbing the currently playing song
@@ -373,8 +382,8 @@ ipcMain.on('player-auto-next', async (_event, data: PlayerData) => {
                 getMpvInstance()?.pause();
             });
 
-        if (data.queue.next?.streamUrl) {
-            await getMpvInstance()?.load(data.queue.next.streamUrl, 'append');
+        if (url) {
+            await getMpvInstance()?.load(url, 'append');
         }
     } catch (err: NodeMpvError | any) {
         mpvLog({ action: `Failed to load next song` }, err);
@@ -412,19 +421,34 @@ ipcMain.handle('player-get-time', async (): Promise<number | undefined> => {
     }
 });
 
-app.on('before-quit', async () => {
-    try {
-        await getMpvInstance()?.stop();
-        await getMpvInstance()?.quit();
-    } catch (err: NodeMpvError | any) {
-        mpvLog({ action: `Failed to cleanly before-quit` }, err);
-    }
-});
+enum MpvState {
+    STARTED,
+    IN_PROGRESS,
+    DONE,
+}
 
-app.on('window-all-closed', async () => {
-    try {
-        await getMpvInstance()?.quit();
-    } catch (err: NodeMpvError | any) {
-        mpvLog({ action: `Failed to cleanly exit` }, err);
+let mpvState = MpvState.STARTED;
+
+app.on('before-quit', async (event) => {
+    switch (mpvState) {
+        case MpvState.DONE:
+            return;
+        case MpvState.IN_PROGRESS:
+            event.preventDefault();
+            break;
+        case MpvState.STARTED: {
+            try {
+                mpvState = MpvState.IN_PROGRESS;
+                event.preventDefault();
+                await getMpvInstance()?.stop();
+                await quit();
+            } catch (err: NodeMpvError | any) {
+                mpvLog({ action: `Failed to cleanly before-quit` }, err);
+            } finally {
+                mpvState = MpvState.DONE;
+                app.quit();
+            }
+            break;
+        }
     }
 });

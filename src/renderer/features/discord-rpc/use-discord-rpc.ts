@@ -5,6 +5,7 @@ import {
     useCurrentSong,
     useCurrentStatus,
     useDiscordSetttings,
+    useGeneralSettings,
     usePlayerStore,
 } from '/@/renderer/store';
 import { SetActivity } from '@xhayper/discord-rpc';
@@ -16,6 +17,7 @@ const discordRpc = isElectron() ? window.electron.discordRpc : null;
 export const useDiscordRpc = () => {
     const intervalRef = useRef(0);
     const discordSettings = useDiscordSetttings();
+    const generalSettings = useGeneralSettings();
     const currentSong = useCurrentSong();
     const currentStatus = useCurrentStatus();
 
@@ -25,23 +27,27 @@ export const useDiscordRpc = () => {
             return;
         }
 
+        const song = currentSong?.id ? currentSong : null;
+
         const currentTime = usePlayerStore.getState().current.time;
 
         const now = Date.now();
         const start = currentTime ? Math.round(now - currentTime * 1000) : null;
-        const end =
-            currentSong?.duration && start ? Math.round(start + currentSong.duration) : null;
+        const end = song?.duration && start ? Math.round(start + song.duration) : null;
 
-        const artists = currentSong?.artists.map((artist) => artist.name).join(', ');
+        const artists = song?.artists.map((artist) => artist.name).join(', ');
 
         const activity: SetActivity = {
-            details: currentSong?.name.padEnd(2, ' ') || 'Idle',
+            details: song?.name.padEnd(2, ' ') || 'Idle',
             instance: false,
             largeImageKey: undefined,
-            largeImageText: currentSong?.album || 'Unknown album',
+            largeImageText: song?.album || 'Unknown album',
             smallImageKey: undefined,
             smallImageText: currentStatus,
             state: (artists && `By ${artists}`) || 'Unknown artist',
+            // I would love to use the actual type as opposed to hardcoding to 2,
+            // but manually installing the discord-types package appears to break things
+            type: discordSettings.showAsListening ? 2 : 0,
         };
 
         if (currentStatus === PlayerStatus.PLAYING) {
@@ -56,11 +62,24 @@ export const useDiscordRpc = () => {
         }
 
         if (
-            currentSong?.serverType === ServerType.JELLYFIN &&
+            song?.serverType === ServerType.JELLYFIN &&
             discordSettings.showServerImage &&
-            currentSong?.imageUrl
+            song?.imageUrl
         ) {
-            activity.largeImageKey = currentSong?.imageUrl;
+            activity.largeImageKey = song?.imageUrl;
+        }
+
+        if (generalSettings.lastfmApiKey && song?.album && song?.albumArtists.length) {
+            console.log('Fetching album info for', song.album, song.albumArtists[0].name);
+            const albumInfo = await fetch(
+                `https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${generalSettings.lastfmApiKey}&artist=${encodeURIComponent(song.albumArtists[0].name)}&album=${encodeURIComponent(song.album)}&format=json`,
+            );
+
+            const albumInfoJson = await albumInfo.json();
+
+            if (albumInfoJson.album?.image?.[3]['#text']) {
+                activity.largeImageKey = albumInfoJson.album.image[3]['#text'];
+            }
         }
 
         // Fall back to default icon if not set
@@ -69,7 +88,14 @@ export const useDiscordRpc = () => {
         }
 
         discordRpc?.setActivity(activity);
-    }, [currentSong, currentStatus, discordSettings.enableIdle, discordSettings.showServerImage]);
+    }, [
+        currentSong,
+        currentStatus,
+        discordSettings.enableIdle,
+        discordSettings.showAsListening,
+        discordSettings.showServerImage,
+        generalSettings.lastfmApiKey,
+    ]);
 
     useEffect(() => {
         const initializeDiscordRpc = async () => {

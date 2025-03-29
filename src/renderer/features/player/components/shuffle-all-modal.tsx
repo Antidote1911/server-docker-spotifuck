@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Divider, Group, Stack } from '@mantine/core';
+import { Divider, Group, SelectItem, Stack } from '@mantine/core';
 import { closeAllModals, openModal } from '@mantine/modals';
 import { QueryClient } from '@tanstack/react-query';
 import merge from 'lodash/merge';
@@ -16,6 +16,7 @@ import {
     GenreListSort,
     SortOrder,
     ServerListItem,
+    Played,
 } from '/@/renderer/api/types';
 import { api } from '/@/renderer/api';
 import { useAuthStore } from '/@/renderer/store';
@@ -45,6 +46,7 @@ const useShuffleAllStore = create<ShuffleAllSlice>()(
             maxYear: 2020,
             minYear: 2000,
             musicFolder: '',
+            played: Played.All,
             songCount: 100,
         })),
         {
@@ -54,6 +56,12 @@ const useShuffleAllStore = create<ShuffleAllSlice>()(
         },
     ),
 );
+
+const PLAYED_DATA: SelectItem[] = [
+    { label: 'all tracks', value: Played.All },
+    { label: 'only unplayed tracks', value: Played.Never },
+    { label: 'only played tracks', value: Played.Played },
+];
 
 export const useShuffleAllStoreActions = () => useShuffleAllStore((state) => state.actions);
 
@@ -72,7 +80,7 @@ export const ShuffleAllModal = ({
     genres,
     musicFolders,
 }: ShuffleAllModalProps) => {
-    const { genre, limit, maxYear, minYear, enableMaxYear, enableMinYear, musicFolderId } =
+    const { genre, limit, maxYear, minYear, enableMaxYear, enableMinYear, musicFolderId, played } =
         useShuffleAllStore();
     const { setStore } = useShuffleAllStoreActions();
 
@@ -91,6 +99,7 @@ export const ShuffleAllModal = ({
                         maxYear: enableMaxYear ? maxYear || undefined : undefined,
                         minYear: enableMinYear ? minYear || undefined : undefined,
                         musicFolderId: musicFolderId || undefined,
+                        played,
                     },
                 }),
             queryKey: queryKeys.songs.randomSongList(server?.id),
@@ -136,7 +145,7 @@ export const ShuffleAllModal = ({
                 max={500}
                 min={1}
                 value={limit}
-                onChange={(e) => setStore({ limit: e ? Number(e) : 0 })}
+                onChange={(e) => setStore({ limit: e ? Number(e) : 500 })}
             />
             <Group grow>
                 <NumberInput
@@ -185,9 +194,21 @@ export const ShuffleAllModal = ({
                     setStore({ musicFolderId: e ? String(e) : '' });
                 }}
             />
+            {server?.type === ServerType.JELLYFIN && (
+                <Select
+                    clearable
+                    data={PLAYED_DATA}
+                    label="Play filter"
+                    value={played}
+                    onChange={(e) => {
+                        setStore({ played: e as Played });
+                    }}
+                />
+            )}
             <Divider />
             <Group grow>
                 <Button
+                    disabled={!limit}
                     leftIcon={<RiAddBoxFill size="1rem" />}
                     type="submit"
                     variant="default"
@@ -196,6 +217,7 @@ export const ShuffleAllModal = ({
                     Add
                 </Button>
                 <Button
+                    disabled={!limit}
                     leftIcon={<RiAddCircleFill size="1rem" />}
                     type="submit"
                     variant="default"
@@ -205,6 +227,7 @@ export const ShuffleAllModal = ({
                 </Button>
             </Group>
             <Button
+                disabled={!limit}
                 leftIcon={<RiPlayFill size="1rem" />}
                 type="submit"
                 variant="filled"

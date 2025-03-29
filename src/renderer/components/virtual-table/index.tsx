@@ -15,8 +15,6 @@ import type { AgGridReactProps } from '@ag-grid-community/react';
 import { AgGridReact } from '@ag-grid-community/react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
 import { useClickOutside, useMergedRef } from '@mantine/hooks';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import formatDuration from 'format-duration';
 import { AnimatePresence } from 'framer-motion';
 import { generatePath } from 'react-router';
@@ -43,7 +41,13 @@ import { useFixedTableHeader } from '/@/renderer/components/virtual-table/hooks/
 import { NoteCell } from '/@/renderer/components/virtual-table/cells/note-cell';
 import { RowIndexCell } from '/@/renderer/components/virtual-table/cells/row-index-cell';
 import i18n from '/@/i18n/i18n';
-import { formatSizeString } from '/@/renderer/utils/format-size-string';
+import {
+    formatDateAbsolute,
+    formatDateAbsoluteUTC,
+    formatDateRelative,
+    formatSizeString,
+} from '/@/renderer/utils/format';
+import { useTableChange } from '/@/renderer/hooks/use-song-change';
 
 export * from './table-config-dropdown';
 export * from './table-pagination';
@@ -63,8 +67,6 @@ const DummyHeader = styled.div<{ height?: number }>`
     position: absolute;
     height: ${({ height }) => height || 36}px;
 `;
-
-dayjs.extend(relativeTime);
 
 const tableColumns: { [key: string]: ColDef } = {
     actions: {
@@ -182,8 +184,7 @@ const tableColumns: { [key: string]: ColDef } = {
             GenericTableHeader(params, { position: 'center' }),
         headerName: i18n.t('table.column.dateAdded'),
         suppressSizeToFit: true,
-        valueFormatter: (params: ValueFormatterParams) =>
-            params.value ? dayjs(params.value).format('MMM D, YYYY') : '',
+        valueFormatter: (params: ValueFormatterParams) => formatDateAbsolute(params.value),
         valueGetter: (params: ValueGetterParams) =>
             params.data ? params.data.createdAt : undefined,
         width: 130,
@@ -225,8 +226,7 @@ const tableColumns: { [key: string]: ColDef } = {
         headerComponent: (params: IHeaderParams) =>
             GenericTableHeader(params, { position: 'center' }),
         headerName: i18n.t('table.column.lastPlayed'),
-        valueFormatter: (params: ValueFormatterParams) =>
-            params.value ? dayjs(params.value).fromNow() : '',
+        valueFormatter: (params: ValueFormatterParams) => formatDateRelative(params.value),
         valueGetter: (params: ValueGetterParams) =>
             params.data ? params.data.lastPlayedAt : undefined,
         width: 130,
@@ -258,8 +258,7 @@ const tableColumns: { [key: string]: ColDef } = {
             GenericTableHeader(params, { position: 'center' }),
         headerName: i18n.t('table.column.releaseDate'),
         suppressSizeToFit: true,
-        valueFormatter: (params: ValueFormatterParams) =>
-            params.value ? dayjs(params.value).format('MMM D, YYYY') : '',
+        valueFormatter: (params: ValueFormatterParams) => formatDateAbsoluteUTC(params.value),
         valueGetter: (params: ValueGetterParams) =>
             params.data ? params.data.releaseDate : undefined,
         width: 130,
@@ -362,6 +361,7 @@ const tableColumns: { [key: string]: ColDef } = {
                 ? {
                       albumArtists: params.data?.albumArtists,
                       artists: params.data?.artists,
+                      id: params.data?.id,
                       imagePlaceholderUrl: params.data?.imagePlaceholderUrl,
                       imageUrl: params.data?.imageUrl,
                       name: params.data?.name,
@@ -482,6 +482,7 @@ export interface VirtualTableProps extends AgGridReactProps {
         pagination: TablePaginationType;
         setPagination: any;
     };
+    shouldUpdateSong?: boolean;
     stickyHeader?: boolean;
     transparentHeader?: boolean;
 }
@@ -499,6 +500,7 @@ export const VirtualTable = forwardRef(
             onGridReady,
             onGridSizeChanged,
             paginationProps,
+            shouldUpdateSong,
             ...rest
         }: VirtualTableProps,
         ref: Ref<AgGridReactType | null>,
@@ -512,6 +514,8 @@ export const VirtualTable = forwardRef(
                 tableRef?.current?.api?.deselectAll();
             }
         });
+
+        useTableChange(tableRef, shouldUpdateSong === true);
 
         const defaultColumnDefs: ColDef = useMemo(() => {
             return {

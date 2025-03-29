@@ -128,7 +128,7 @@ export const NativeScrollArea = forwardRef(
                     autoHide: 'leave',
                     autoHideDelay: scrollHideDelay || 500,
                     pointers: ['mouse', 'pen', 'touch'],
-                    theme: 'spotifuck',
+                    theme: 'feishin',
                     visibility: 'visible',
                 },
             },

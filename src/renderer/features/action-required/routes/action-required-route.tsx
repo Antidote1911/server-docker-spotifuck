@@ -1,11 +1,11 @@
 import { Center, Group, Stack } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { RiCheckFill, RiEdit2Line, RiHome4Line } from 'react-icons/ri';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button, PageHeader, Text } from '/@/renderer/components';
 import { ActionRequiredContainer } from '/@/renderer/features/action-required/components/action-required-container';
 import { ServerCredentialRequired } from '/@/renderer/features/action-required/components/server-credential-required';
-import { LogonRequired } from '/@/renderer/features/action-required/components/server-required';
+import { ServerRequired } from '/@/renderer/features/action-required/components/server-required';
 import { AnimatedPage } from '/@/renderer/features/shared';
 import { AppRoute } from '/@/renderer/router/routes';
 import { useCurrentServer } from '/@/renderer/store';
@@ -25,8 +25,8 @@ const ActionRequiredRoute = () => {
             valid: !isCredentialRequired,
         },
         {
-            component: <LogonRequired />,
-            title: '',
+            component: <ServerRequired />,
+            title: t('error.serverRequired', { postProcess: 'serverRequired' }),
             valid: !isServerRequired,
         },
     ];
@@ -37,7 +37,7 @@ const ActionRequiredRoute = () => {
     const handleManageServersModal = () => {
         openModal({
             children: <ServerList />,
-            title: 'Manage Servers',
+            title: t('page.appMenu.manageServers', { postProcess: 'sentenceCase' }),
         });
     };
 
@@ -59,7 +59,6 @@ const ActionRequiredRoute = () => {
                     <Stack mt="2rem">
                         {canReturnHome && (
                             <>
-                            <Navigate to={AppRoute.HOME} />
                                 <Group
                                     noWrap
                                     position="center"

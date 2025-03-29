@@ -23,6 +23,7 @@ export type ContextMenuItemType =
     | 'play'
     | 'playLast'
     | 'playNext'
+    | 'playShuffled'
     | 'addToPlaylist'
     | 'removeFromPlaylist'
     | 'addToFavorites'
@@ -31,11 +32,39 @@ export type ContextMenuItemType =
     | 'shareItem'
     | 'deletePlaylist'
     | 'createPlaylist'
+    | 'moveToNextOfQueue'
     | 'moveToBottomOfQueue'
     | 'moveToTopOfQueue'
     | 'removeFromQueue'
     | 'deselectAll'
-    | 'showDetails';
+    | 'showDetails'
+    | 'playSimilarSongs'
+    | 'download';
+
+export const CONFIGURABLE_CONTEXT_MENU_ITEMS: ContextMenuItemType[] = [
+    'moveToBottomOfQueue',
+    'moveToTopOfQueue',
+    'play',
+    'playLast',
+    'playNext',
+    'playShuffled',
+    'playSimilarSongs',
+    'addToPlaylist',
+    'removeFromPlaylist',
+    'addToFavorites',
+    'removeFromFavorites',
+    'setRating',
+    'download',
+    'shareItem',
+    'showDetails',
+];
+
+export const CONTEXT_MENU_ITEM_MAPPING: { [k in ContextMenuItemType]?: string } = {
+    moveToBottomOfQueue: 'moveToBottom',
+    moveToTopOfQueue: 'moveToTop',
+    playLast: 'addLast',
+    playNext: 'addNext',
+};
 
 export type SetContextMenuItems = {
     children?: boolean;

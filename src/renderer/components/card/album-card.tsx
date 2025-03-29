@@ -17,7 +17,9 @@ const CardWrapper = styled.div<{
     cursor: ${({ link }) => link && 'pointer'};
     background: var(--card-default-bg);
     border-radius: var(--card-default-radius);
-    transition: border 0.2s ease-in-out, background 0.2s ease-in-out;
+    transition:
+        border 0.2s ease-in-out,
+        background 0.2s ease-in-out;
 
     &:hover {
         background: var(--card-default-bg-hover);
@@ -200,7 +202,7 @@ export const AlbumCard = ({
                     <ImageSection />
                 </Skeleton>
                 <DetailSection style={{ width: '100%' }}>
-                    {cardRows.map((_row: CardRow<Album>, index: number) => (
+                    {(cardRows || []).map((_row: CardRow<Album>, index: number) => (
                         <Skeleton
                             visible
                             height={15}

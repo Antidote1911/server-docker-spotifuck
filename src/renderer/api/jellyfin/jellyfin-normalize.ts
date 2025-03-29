@@ -30,11 +30,11 @@ const getStreamUrl = (args: {
         `?userId=${server?.userId}` +
         `&deviceId=${deviceId}` +
         '&audioCodec=aac' +
-        `&api_key=${server?.credential}` +
+        `&apiKey=${server?.credential}` +
         `&playSessionId=${deviceId}` +
         '&container=opus,mp3,aac,m4a,m4b,flac,wav,ogg' +
         '&transcodingContainer=ts' +
-        '&transcodingProtocol=hls'
+        '&transcodingProtocol=http'
     );
 };
 
@@ -53,7 +53,7 @@ const getAlbumArtistCoverArtUrl = (args: {
         `${args.baseUrl}/Items` +
         `/${args.item.Id}` +
         '/Images/Primary' +
-        `?width=${size}&height=${size}` +
+        `?width=${size}` +
         '&quality=96'
     );
 };
@@ -69,7 +69,7 @@ const getAlbumCoverArtUrl = (args: { baseUrl: string; item: JFAlbum; size: numbe
         `${args.baseUrl}/Items` +
         `/${args.item.Id}` +
         '/Images/Primary' +
-        `?width=${size}&height=${size}` +
+        `?width=${size}` +
         '&quality=96'
     );
 };
@@ -86,7 +86,7 @@ const getSongCoverArtUrl = (args: {
             `${args.baseUrl}/Items` +
             `/${args.item.Id}` +
             '/Images/Primary' +
-            `?width=${size}&height=${size}` +
+            `?width=${size}` +
             '&quality=96'
         );
     }
@@ -97,7 +97,7 @@ const getSongCoverArtUrl = (args: {
             `${args.baseUrl}/Items` +
             `/${args.item?.AlbumId}` +
             '/Images/Primary' +
-            `?width=${size}&height=${size}` +
+            `?width=${size}` +
             '&quality=96'
         );
     }
@@ -116,7 +116,7 @@ const getPlaylistCoverArtUrl = (args: { baseUrl: string; item: JFPlaylist; size:
         `${args.baseUrl}/Items` +
         `/${args.item.Id}` +
         '/Images/Primary' +
-        `?width=${size}&height=${size}` +
+        `?width=${size}` +
         '&quality=96'
     );
 };
@@ -153,11 +153,16 @@ const normalizeSong = (
         discNumber: (item.ParentIndexNumber && item.ParentIndexNumber) || 1,
         discSubtitle: null,
         duration: item.RunTimeTicks / 10000,
-        gain: item.LUFS
-            ? {
-                  track: -18 - item.LUFS,
-              }
-            : null,
+        gain:
+            item.NormalizationGain !== undefined
+                ? {
+                      track: item.NormalizationGain,
+                  }
+                : item.LUFS
+                  ? {
+                        track: -18 - item.LUFS,
+                    }
+                  : null,
         genres: item.GenreItems?.map((entry) => ({
             id: entry.Id,
             imageUrl: null,
@@ -171,12 +176,16 @@ const normalizeSong = (
         lastPlayedAt: null,
         lyrics: null,
         name: item.Name,
+        participants: null,
         path: (item.MediaSources && item.MediaSources[0]?.Path) || null,
         peak: null,
         playCount: (item.UserData && item.UserData.PlayCount) || 0,
         playlistItemId: item.PlaylistItemId,
-        // releaseDate: (item.ProductionYear && new Date(item.ProductionYear, 0, 1).toISOString()) || null,
-        releaseDate: null,
+        releaseDate: item.PremiereDate
+            ? new Date(item.PremiereDate).toISOString()
+            : item.ProductionYear
+              ? new Date(item.ProductionYear, 0, 1).toISOString()
+              : null,
         releaseYear: item.ProductionYear ? String(item.ProductionYear) : null,
         serverId: server?.id || '',
         serverType: ServerType.JELLYFIN,
@@ -227,6 +236,7 @@ const normalizeAlbum = (
         })),
         id: item.Id,
         imagePlaceholderUrl: null,
+        participants: null,
         imageUrl: getAlbumCoverArtUrl({
             baseUrl: server?.url || '',
             item,
@@ -237,6 +247,7 @@ const normalizeAlbum = (
         lastPlayedAt: null,
         mbzId: item.ProviderIds?.MusicBrainzAlbum || null,
         name: item.Name,
+        originalDate: null,
         playCount: item.UserData?.PlayCount || 0,
         releaseDate: item.PremiereDate?.split('T')[0] || null,
         releaseYear: item.ProductionYear || null,
@@ -384,7 +395,7 @@ const getGenreCoverArtUrl = (args: {
         `${args.baseUrl}/Items` +
         `/${args.item.Id}` +
         '/Images/Primary' +
-        `?width=${size}&height=${size}` +
+        `?width=${size}` +
         '&quality=96'
     );
 };

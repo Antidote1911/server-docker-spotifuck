@@ -3,6 +3,7 @@ import { Stack, Group, Divider } from '@mantine/core';
 import { Button, Text, TimeoutButton } from '/@/renderer/components';
 import { useDisclosure } from '@mantine/hooks';
 import isElectron from 'is-electron';
+import { useTranslation } from 'react-i18next';
 import { RiDeleteBin2Line, RiEdit2Fill } from 'react-icons/ri';
 import { EditServerForm } from '/@/renderer/features/servers/components/edit-server-form';
 import { ServerSection } from '/@/renderer/features/servers/components/server-section';
@@ -16,6 +17,7 @@ interface ServerListItemProps {
 }
 
 export const ServerListItem = ({ server }: ServerListItemProps) => {
+    const { t } = useTranslation();
     const [edit, editHandlers] = useDisclosure(false);
     const [savedPassword, setSavedPassword] = useState('');
     const { deleteServer } = useAuthStoreActions();
@@ -54,7 +56,11 @@ export const ServerListItem = ({ server }: ServerListItemProps) => {
             <ServerSection
                 title={
                     <Group position="apart">
-                        <Text>Server details</Text>
+                        <Text>
+                            {t('page.manageServers.serverDetails', {
+                                postProcess: 'sentenceCase',
+                            })}
+                        </Text>
                     </Group>
                 }
             >
@@ -68,15 +74,36 @@ export const ServerListItem = ({ server }: ServerListItemProps) => {
                     <Stack>
                         <Group noWrap>
                             <Stack>
-                                <Text>URL</Text>
-                                <Text>User</Text>
+                                <Text>
+                                    {t('page.manageServers.url', {
+                                        postProcess: 'sentenceCase',
+                                    })}
+                                </Text>
+                                <Text>
+                                    {t('page.manageServers.username', {
+                                        postProcess: 'sentenceCase',
+                                    })}
+                                </Text>
                             </Stack>
                             <Stack>
                                 <Text>{server.url}</Text>
                                 <Text>{server.username}</Text>
                             </Stack>
                         </Group>
-                        
+                        <Group grow>
+                            <Button
+                                leftIcon={<RiEdit2Fill />}
+                                tooltip={{
+                                    label: t('page.manageServers.editServerDetailsTooltip', {
+                                        postProcess: 'sentenceCase',
+                                    }),
+                                }}
+                                variant="subtle"
+                                onClick={() => handleEdit()}
+                            >
+                                {t('common.edit')}
+                            </Button>
+                        </Group>
                     </Stack>
                 )}
             </ServerSection>
@@ -86,7 +113,7 @@ export const ServerListItem = ({ server }: ServerListItemProps) => {
                 timeoutProps={{ callback: handleDeleteServer, duration: 1000 }}
                 variant="subtle"
             >
-                Déconnecter
+                {t('page.manageServers.removeServer', { postProcess: 'sentenceCase' })}
             </TimeoutButton>
         </Stack>
     );

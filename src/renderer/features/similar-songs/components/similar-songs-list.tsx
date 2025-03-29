@@ -61,10 +61,12 @@ export const SimilarSongsList = ({ count, fullScreen, song }: SimilarSongsListPr
             <VirtualGridAutoSizerContainer>
                 <VirtualTable
                     ref={tableRef}
+                    shouldUpdateSong
                     autoFitColumns={tableConfig.autoFit}
                     columnDefs={columnDefs}
                     context={{
                         count,
+                        itemType: LibraryItem.SONG,
                         onCellContextMenu,
                         song,
                     }}

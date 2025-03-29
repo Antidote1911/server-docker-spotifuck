@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react';
 import {
+    useCurrentPlayer,
     useCurrentStatus,
     useCurrentTime,
     useLyricsSettings,
     usePlaybackType,
+    usePlayerData,
     useSeeked,
+    useSetCurrentTime,
 } from '/@/renderer/store';
 import { PlaybackType, PlayerStatus } from '/@/renderer/types';
 import { LyricLine } from '/@/renderer/features/lyrics/lyric-line';
@@ -12,8 +15,11 @@ import isElectron from 'is-electron';
 import { PlayersRef } from '/@/renderer/features/player/ref/players-ref';
 import { FullLyricsMetadata, SynchronizedLyricsArray } from '/@/renderer/api/types';
 import styled from 'styled-components';
+import { useScrobble } from '/@/renderer/features/player/hooks/use-scrobble';
 
 const mpvPlayer = isElectron() ? window.electron.mpvPlayer : null;
+const utils = isElectron() ? window.electron.utils : null;
+const mpris = isElectron() && utils?.isLinux() ? window.electron.mpris : null;
 
 const SynchronizedLyricsContainer = styled.div<{ $gap: number }>`
     display: flex;
@@ -23,6 +29,7 @@ const SynchronizedLyricsContainer = styled.div<{ $gap: number }>`
     height: 100%;
     padding: 10vh 0 50vh;
     overflow: scroll;
+    word-break: break-word;
     transform: translateY(-2rem);
 
     -webkit-mask-image: linear-gradient(
@@ -48,6 +55,7 @@ const SynchronizedLyricsContainer = styled.div<{ $gap: number }>`
 
 export interface SynchronizedLyricsProps extends Omit<FullLyricsMetadata, 'lyrics'> {
     lyrics: SynchronizedLyricsArray;
+    translatedLyrics?: string | null;
 }
 
 export const SynchronizedLyrics = ({
@@ -56,12 +64,33 @@ export const SynchronizedLyrics = ({
     name,
     remote,
     source,
+    translatedLyrics,
 }: SynchronizedLyricsProps) => {
     const playersRef = PlayersRef;
     const status = useCurrentStatus();
     const playbackType = usePlaybackType();
+    const playerData = usePlayerData();
     const now = useCurrentTime();
     const settings = useLyricsSettings();
+    const currentPlayer = useCurrentPlayer();
+    const currentPlayerRef =
+        currentPlayer === 1 ? playersRef.current?.player1 : playersRef.current?.player2;
+    const setCurrentTime = useSetCurrentTime();
+    const { handleScrobbleFromSeek } = useScrobble();
+
+    const handleSeek = useCallback(
+        (time: number) => {
+            if (playbackType === PlaybackType.LOCAL && mpvPlayer) {
+                mpvPlayer.seekTo(time);
+            } else {
+                setCurrentTime(time, true);
+                handleScrobbleFromSeek(time);
+                mpris?.updateSeek(time);
+                currentPlayerRef?.seekTo(time);
+            }
+        },
+        [currentPlayerRef, handleScrobbleFromSeek, playbackType, setCurrentTime],
+    );
 
     const seeked = useSeeked();
 
@@ -107,16 +136,18 @@ export const SynchronizedLyrics = ({
             return 0;
         }
 
-        const player = (
-            playersRef.current.player1 ?? playersRef.current.player2
-        ).getInternalPlayer();
+        const player =
+            playerData.current.player === 1
+                ? playersRef.current.player1
+                : playersRef.current.player2;
+        const underlying = player?.getInternalPlayer();
 
         // If it is null, this probably means we added a new song while the lyrics tab is open
         // and the queue was previously empty
-        if (!player) return 0;
+        if (!underlying) return 0;
 
-        return player.currentTime;
-    }, [playbackType, playersRef]);
+        return underlying.currentTime;
+    }, [playbackType, playersRef, playerData]);
 
     const setCurrentLyric = useCallback(
         (timeInMs: number, epoch?: number, targetIndex?: number) => {
@@ -173,9 +204,12 @@ export const SynchronizedLyrics = ({
 
                 const elapsed = performance.now() - start;
 
-                lyricTimer.current = setTimeout(() => {
-                    setCurrentLyric(nextTime, nextEpoch, index + 1);
-                }, nextTime - timeInMs - elapsed);
+                lyricTimer.current = setTimeout(
+                    () => {
+                        setCurrentLyric(nextTime, nextEpoch, index + 1);
+                    },
+                    nextTime - timeInMs - elapsed,
+                );
             }
         },
         [],
@@ -331,15 +365,26 @@ export const SynchronizedLyrics = ({
                     text={`"${name} by ${artist}"`}
                 />
             )}
-            {lyrics.map(([, text], idx) => (
-                <LyricLine
-                    key={idx}
-                    alignment={settings.alignment}
-                    className="lyric-line synchronized"
-                    fontSize={settings.fontSize}
-                    id={`lyric-${idx}`}
-                    text={text}
-                />
+            {lyrics.map(([time, text], idx) => (
+                <div key={idx}>
+                    <LyricLine
+                        alignment={settings.alignment}
+                        className="lyric-line synchronized"
+                        fontSize={settings.fontSize}
+                        id={`lyric-${idx}`}
+                        text={text}
+                        onClick={() => handleSeek(time / 1000)}
+                    />
+                    {translatedLyrics && (
+                        <LyricLine
+                            alignment={settings.alignment}
+                            className="lyric-line synchronized translation"
+                            fontSize={settings.fontSize * 0.8}
+                            text={translatedLyrics.split('\n')[idx]}
+                            onClick={() => handleSeek(time / 1000)}
+                        />
+                    )}
+                </div>
             ))}
         </SynchronizedLyricsContainer>
     );

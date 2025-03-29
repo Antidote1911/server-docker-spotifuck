@@ -26,11 +26,11 @@ export const IsUpdatedDialog = () => {
             }}
         >
             <Stack>
-                <Text>A new version of Spotifuck has been installed ({version})</Text>
+                <Text>A new version of Feishin has been installed ({version})</Text>
                 <Group noWrap>
                     <Button
                         component="a"
-                        href={`https://github.com/jeffvli/spotifuck/releases/tag/v${version}`}
+                        href={`https://github.com/jeffvli/feishin/releases/tag/v${version}`}
                         rightIcon={<RiExternalLinkLine />}
                         target="_blank"
                         variant="filled"

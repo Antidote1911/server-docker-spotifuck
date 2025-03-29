@@ -50,13 +50,13 @@ const PlaylistDetailSongListRoute = () => {
                         navidrome: {
                             owner: detailQuery?.data?.owner || '',
                             ownerId: detailQuery?.data?.ownerId || '',
-                            public: detailQuery?.data?.public || false,
                             rules,
                             sync: detailQuery?.data?.sync || false,
                         },
                     },
                     comment: detailQuery?.data?.description || '',
                     name: detailQuery?.data?.name,
+                    public: detailQuery?.data?.public || false,
                 },
                 serverId: detailQuery?.data?.serverId,
             },
@@ -92,7 +92,6 @@ const PlaylistDetailSongListRoute = () => {
                             navidrome: {
                                 owner: detailQuery?.data?.owner || '',
                                 ownerId: detailQuery?.data?.ownerId || '',
-                                public: detailQuery?.data?.public || false,
                                 rules: {
                                     ...filter,
                                     limit: extraFilters.limit || undefined,
@@ -104,6 +103,7 @@ const PlaylistDetailSongListRoute = () => {
                         },
                         comment: detailQuery?.data?.description || '',
                         name: detailQuery?.data?.name,
+                        public: detailQuery?.data?.public || false,
                     }}
                     serverId={detailQuery?.data?.serverId}
                     onCancel={closeAllModals}
@@ -144,10 +144,6 @@ const PlaylistDetailSongListRoute = () => {
     };
 
     const itemCountCheck = usePlaylistSongList({
-        options: {
-            cacheTime: 1000 * 60 * 60 * 2,
-            staleTime: 1000 * 60 * 60 * 2,
-        },
         query: {
             id: playlistId,
             limit: 1,
@@ -157,10 +153,7 @@ const PlaylistDetailSongListRoute = () => {
         serverId: server?.id,
     });
 
-    const itemCount =
-        itemCountCheck.data?.totalRecordCount === null
-            ? undefined
-            : itemCountCheck.data?.totalRecordCount;
+    const itemCount = itemCountCheck.data?.totalRecordCount || itemCountCheck.data?.items.length;
 
     return (
         <AnimatedPage key={`playlist-detail-songList-${playlistId}`}>
@@ -207,7 +200,12 @@ const PlaylistDetailSongListRoute = () => {
                     </Paper>
                 </Box>
             )}
-            <PlaylistDetailSongListContent tableRef={tableRef} />
+            <PlaylistDetailSongListContent
+                songs={
+                    server?.type === ServerType.SUBSONIC ? itemCountCheck.data?.items : undefined
+                }
+                tableRef={tableRef}
+            />
         </AnimatedPage>
     );
 };

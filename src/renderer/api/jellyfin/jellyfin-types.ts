@@ -413,6 +413,7 @@ const song = z.object({
     MediaSources: z.array(mediaSources),
     MediaType: z.string(),
     Name: z.string(),
+    NormalizationGain: z.number().optional(),
     ParentIndexNumber: z.number(),
     PlaylistItemId: z.string().optional(),
     PremiereDate: z.string().optional(),
@@ -544,7 +545,7 @@ const songListSort = {
     ARTIST: 'Artist,Album,SortName',
     COMMUNITY_RATING: 'CommunityRating,SortName',
     DURATION: 'Runtime,AlbumArtist,Album,SortName',
-    NAME: 'SortName,Name',
+    NAME: 'Name',
     PLAY_COUNT: 'PlayCount,SortName',
     RANDOM: 'Random,SortName',
     RECENTLY_ADDED: 'DateCreated,SortName',
@@ -561,6 +562,7 @@ const songListParameters = paginationParameters.merge(
         GenreIds: z.string().optional(),
         Genres: z.string().optional(),
         IsFavorite: z.boolean().optional(),
+        IsPlayed: z.boolean().optional(),
         SearchTerm: z.string().optional(),
         SortBy: z.nativeEnum(songListSort).optional(),
         Tags: z.string().optional(),
@@ -581,9 +583,9 @@ const playlistDetailParameters = baseParameters.extend({
 });
 
 const createPlaylistParameters = z.object({
+    IsPublic: z.boolean().optional(),
     MediaType: z.literal('Audio'),
     Name: z.string(),
-    Overview: z.string(),
     UserId: z.string(),
 });
 
@@ -595,9 +597,9 @@ const updatePlaylist = z.null();
 
 const updatePlaylistParameters = z.object({
     Genres: z.array(genreItem),
+    IsPublic: z.boolean().optional(),
     MediaType: z.literal('Audio'),
     Name: z.string(),
-    Overview: z.string(),
     PremiereDate: z.null(),
     ProviderIds: z.object({}),
     Tags: z.array(genericItem),
@@ -681,6 +683,8 @@ export enum JellyfinExtensions {
     SONG_LYRICS = 'songLyrics',
 }
 
+const moveItem = z.null();
+
 export const jfType = {
     _enum: {
         albumArtistList: albumArtistListSort,
@@ -729,6 +733,7 @@ export const jfType = {
         genre,
         genreList,
         lyrics,
+        moveItem,
         musicFolderList,
         playlist,
         playlistList,

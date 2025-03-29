@@ -76,7 +76,7 @@ export const AppMenu = () => {
     const handleManageServersModal = () => {
         openModal({
             children: <ServerList />,
-            title: 'Infos Serveur',
+            title: t('page.manageServers.title', { postProcess: 'titleCase' }),
         });
     };
 
@@ -172,26 +172,17 @@ export const AppMenu = () => {
                 );
             })}
             <DropdownMenu.Divider />
-            <DropdownMenu.Label>
-                {t("Liens externes")}
-            </DropdownMenu.Label>
             <DropdownMenu.Item
                 component="a"
-                href="https://jellyfin.antiplex.fr"
+                href="https://github.com/jeffvli/feishin/releases"
                 icon={<RiGithubLine />}
                 rightSection={<RiExternalLinkLine />}
                 target="_blank"
             >
-                {t("Aller sur Jellyfin")}
-            </DropdownMenu.Item>
-            <DropdownMenu.Item
-                component="a"
-                href="https://github.com/Antidote1911"
-                icon={<RiGithubLine />}
-                rightSection={<RiExternalLinkLine />}
-                target="_blank"
-            >
-                {t("antidote1911@gmail.com")}
+                {t('page.appMenu.version', {
+                    postProcess: 'sentenceCase',
+                    version: packageJson.version,
+                })}
             </DropdownMenu.Item>
             {isElectron() && (
                 <>

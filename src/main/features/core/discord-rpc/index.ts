@@ -1,13 +1,13 @@
 import { Client, SetActivity } from '@xhayper/discord-rpc';
 import { ipcMain } from 'electron';
 
-const SPOTIFUCK_DISCORD_APPLICATION_ID = '1165957668758900787';
+const FEISHIN_DISCORD_APPLICATION_ID = '1165957668758900787';
 
 let client: Client | null = null;
 
 const createClient = (clientId?: string) => {
     client = new Client({
-        clientId: clientId || SPOTIFUCK_DISCORD_APPLICATION_ID,
+        clientId: clientId || FEISHIN_DISCORD_APPLICATION_ID,
     });
 
     client.login();

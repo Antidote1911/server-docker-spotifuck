@@ -25,7 +25,6 @@ import { queryKeys } from '/@/renderer/api/query-keys';
 import { useTranslation } from 'react-i18next';
 import { RiRefreshLine } from 'react-icons/ri';
 import { useSongList } from '/@/renderer/features/songs';
-import imageToAdd from "../../../../../assets/spotifuck.jpg";
 
 const HomeRoute = () => {
     const { t } = useTranslation();
@@ -251,8 +250,7 @@ const HomeRoute = () => {
                     px="2rem"
                     spacing="lg"
                 >
-                    {homeFeature && <img src={imageToAdd} alt="Image" width="368" height="138" style={{ alignSelf: 'center' }}/> }
-                    
+                    {homeFeature && <FeatureCarousel data={featureItemsWithImage} />}
                     {sortedCarousel.map((carousel) => (
                         <MemoizedSwiperGridCarousel
                             key={`carousel-${carousel.uniqueId}`}

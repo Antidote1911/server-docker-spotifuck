@@ -6,6 +6,7 @@ import isElectron from 'is-electron';
 import { useTranslation } from 'react-i18next';
 import {
     RiArrowDownLine,
+    RiArrowGoForwardLine,
     RiArrowUpLine,
     RiShuffleLine,
     RiDeleteBinLine,
@@ -14,13 +15,14 @@ import {
 } from 'react-icons/ri';
 import { Song } from '/@/renderer/api/types';
 import { usePlayerControls, useQueueControls } from '/@/renderer/store';
-import { PlaybackType, PlayerStatus, TableType } from '/@/renderer/types';
+import { PlaybackType, TableType } from '/@/renderer/types';
 import { usePlaybackType } from '/@/renderer/store/settings.store';
 import { usePlayerStore, useSetCurrentTime } from '../../../store/player.store';
 import { TableConfigDropdown } from '/@/renderer/components/virtual-table';
+import { updateSong } from '/@/renderer/features/player/update-remote-song';
+import { setQueue, setQueueNext } from '/@/renderer/utils/set-transcoded-queue-data';
 
 const mpvPlayer = isElectron() ? window.electron.mpvPlayer : null;
-const remote = isElectron() ? window.electron.remote : null;
 
 interface PlayQueueListOptionsProps {
     tableRef: MutableRefObject<{ grid: AgGridReactType<Song> } | null>;
@@ -29,13 +31,31 @@ interface PlayQueueListOptionsProps {
 
 export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsProps) => {
     const { t } = useTranslation();
-    const { clearQueue, moveToBottomOfQueue, moveToTopOfQueue, shuffleQueue, removeFromQueue } =
-        useQueueControls();
+    const {
+        clearQueue,
+        moveToBottomOfQueue,
+        moveToNextOfQueue,
+        moveToTopOfQueue,
+        shuffleQueue,
+        removeFromQueue,
+    } = useQueueControls();
 
     const { pause } = usePlayerControls();
 
     const playbackType = usePlaybackType();
     const setCurrentTime = useSetCurrentTime();
+
+    const handleMoveToNext = () => {
+        const selectedRows = tableRef?.current?.grid.api.getSelectedRows();
+        const uniqueIds = selectedRows?.map((row) => row.uniqueId);
+        if (!uniqueIds?.length) return;
+
+        const playerData = moveToNextOfQueue(uniqueIds);
+
+        if (playbackType === PlaybackType.LOCAL) {
+            setQueueNext(playerData);
+        }
+    };
 
     const handleMoveToBottom = () => {
         const selectedRows = tableRef?.current?.grid.api.getSelectedRows();
@@ -45,7 +65,7 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
         const playerData = moveToBottomOfQueue(uniqueIds);
 
         if (playbackType === PlaybackType.LOCAL) {
-            mpvPlayer!.setQueueNext(playerData);
+            setQueueNext(playerData);
         }
     };
 
@@ -57,7 +77,7 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
         const playerData = moveToTopOfQueue(uniqueIds);
 
         if (playbackType === PlaybackType.LOCAL) {
-            mpvPlayer!.setQueueNext(playerData);
+            setQueueNext(playerData);
         }
     };
 
@@ -72,14 +92,14 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
 
         if (playbackType === PlaybackType.LOCAL) {
             if (isCurrentSongRemoved) {
-                mpvPlayer!.setQueue(playerData);
+                setQueue(playerData);
             } else {
-                mpvPlayer!.setQueueNext(playerData);
+                setQueueNext(playerData);
             }
         }
 
         if (isCurrentSongRemoved) {
-            remote?.updateSong({ song: playerData.current.song });
+            updateSong(playerData.current.song);
         }
     };
 
@@ -87,11 +107,11 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
         const playerData = clearQueue();
 
         if (playbackType === PlaybackType.LOCAL) {
-            mpvPlayer!.setQueue(playerData);
+            setQueue(playerData);
             mpvPlayer!.pause();
         }
 
-        remote?.updateSong({ song: undefined, status: PlayerStatus.PAUSED });
+        updateSong(undefined);
 
         setCurrentTime(0);
         pause();
@@ -101,7 +121,7 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
         const playerData = shuffleQueue();
 
         if (playbackType === PlaybackType.LOCAL) {
-            mpvPlayer!.setQueueNext(playerData);
+            setQueueNext(playerData);
         }
     };
 
@@ -122,6 +142,15 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
                     onClick={handleShuffleQueue}
                 >
                     <RiShuffleLine size="1.1rem" />
+                </Button>
+                <Button
+                    compact
+                    size="md"
+                    tooltip={{ label: t('action.moveToNext', { postProcess: 'sentenceCase' }) }}
+                    variant="default"
+                    onClick={handleMoveToNext}
+                >
+                    <RiArrowGoForwardLine size="1.1rem" />
                 </Button>
                 <Button
                     compact

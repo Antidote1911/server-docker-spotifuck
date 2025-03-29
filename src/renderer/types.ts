@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { ServerFeatures } from '/@/renderer/api/features-types';
 import {
     Album,
@@ -37,6 +38,7 @@ export type TableType =
 
 export type CardRow<T> = {
     arrayProperty?: string;
+    format?: (value: T) => ReactNode;
     property: keyof T;
     route?: CardRoute;
 };
@@ -67,6 +69,8 @@ export const toServerType = (value?: string): ServerType | null => {
             return ServerType.JELLYFIN;
         case ServerType.NAVIDROME:
             return ServerType.NAVIDROME;
+        case ServerType.SUBSONIC:
+            return ServerType.SUBSONIC;
         default:
             return null;
     }
@@ -107,6 +111,7 @@ export enum Play {
     LAST = 'last',
     NEXT = 'next',
     NOW = 'now',
+    SHUFFLE = 'shuffle',
 }
 
 export enum CrossfadeStyle {
@@ -209,8 +214,8 @@ export type GridCardData = {
     route: CardRoute;
 };
 
-export type SongUpdate = {
-    currentTime?: number;
+export type SongState = {
+    position?: number;
     repeat?: PlayerRepeat;
     shuffle?: boolean;
     song?: QueueSong;
@@ -232,3 +237,8 @@ export enum AuthState {
     LOADING = 'loading',
     VALID = 'valid',
 }
+
+export type WebAudio = {
+    context: AudioContext;
+    gain: GainNode;
+};

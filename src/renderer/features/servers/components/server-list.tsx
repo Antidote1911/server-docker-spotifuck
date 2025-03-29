@@ -27,7 +27,7 @@ export const ServerList = () => {
                 ),
             },
             modal: 'base',
-            title: t('form.logon.title', { postProcess: 'titleCase' }),
+            title: t('form.addServer.title', { postProcess: 'titleCase' }),
         });
     };
 
@@ -69,7 +69,16 @@ export const ServerList = () => {
                     zIndex: 2000,
                 }}
             >
-               
+                <Button
+                    autoFocus
+                    compact
+                    leftIcon={<RiAddFill size={15} />}
+                    size="sm"
+                    variant="filled"
+                    onClick={handleAddServerModal}
+                >
+                    {t('form.addServer.title', { postProcess: 'titleCase' })}
+                </Button>
             </Group>
             <Stack>
                 <Accordion variant="separated">
@@ -100,7 +109,7 @@ export const ServerList = () => {
                         <Group>
                             <Switch
                                 checked={ignoreCORS === 'true'}
-                                label={t('form.logon.ignoreCors', {
+                                label={t('form.addServer.ignoreCors', {
                                     postProcess: 'sentenceCase',
                                 })}
                                 onChange={handleUpdateIgnoreCORS}
@@ -109,7 +118,7 @@ export const ServerList = () => {
                         <Group>
                             <Switch
                                 checked={ignoreSSL === 'true'}
-                                label={t('form.logon.ignoreSsl', {
+                                label={t('form.addServer.ignoreSsl', {
                                     postProcess: 'sentenceCase',
                                 })}
                                 onChange={handleUpdateIgnoreSSL}

@@ -55,7 +55,7 @@ export default class AppUpdater {
     }
 }
 
-protocol.registerSchemesAsPrivileged([{ privileges: { bypassCSP: true }, scheme: 'spotifuck' }]);
+protocol.registerSchemesAsPrivileged([{ privileges: { bypassCSP: true }, scheme: 'feishin' }]);
 
 process.on('uncaughtException', (error: any) => {
     console.log('Error in main process', error);
@@ -67,8 +67,8 @@ if (store.get('ignore_ssl')) {
 
 // From https://github.com/tutao/tutanota/commit/92c6ed27625fcf367f0fbcc755d83d7ff8fde94b
 if (isLinux() && !process.argv.some((a) => a.startsWith('--password-store='))) {
-    const paswordStore = store.get('password_store', 'gnome-libsecret') as string;
-    app.commandLine.appendSwitch('password-store', paswordStore);
+    const passwordStore = store.get('password_store', 'gnome-libsecret') as string;
+    app.commandLine.appendSwitch('password-store', passwordStore);
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -204,13 +204,13 @@ const createTray = () => {
         createWinThumbarButtons();
     });
 
-    tray.setToolTip('Spotifuck');
+    tray.setToolTip('Feishin');
     tray.setContextMenu(contextMenu);
 };
 
 const createWindow = async (first = true) => {
     if (isDevelopment) {
-        await installExtensions();
+        await installExtensions().catch(console.log);
     }
 
     const nativeFrame = store.get('window_window_bar_style') === 'linux';
@@ -364,18 +364,8 @@ const createWindow = async (first = true) => {
         }
     });
 
-    ipcMain.handle('open-item', async (_event, path: string) => {
-        return new Promise<void>((resolve, reject) => {
-            access(path, constants.F_OK, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-
-                shell.showItemInFolder(path);
-                resolve();
-            });
-        });
+    ipcMain.on('download-url', (_event, url: string) => {
+        mainWindow?.webContents.downloadURL(url);
     });
 
     const globalMediaKeysEnabled = store.get('global_media_hotkeys', true) as boolean;
@@ -487,7 +477,7 @@ const createWindow = async (first = true) => {
     const menuBuilder = new MenuBuilder(mainWindow);
     menuBuilder.buildMenu();
 
-    // Open urls in the user's browser
+    // Open URLs in the user's browser
     mainWindow.webContents.setWindowOpenHandler((edata) => {
         shell.openExternal(edata.url);
         return { action: 'deny' };
@@ -639,8 +629,8 @@ if (!singleInstance) {
 
     app.whenReady()
         .then(() => {
-            protocol.handle('spotifuck', async (request) => {
-                const filePath = `file://${request.url.slice('spotifuck://'.length)}`;
+            protocol.handle('feishin', async (request) => {
+                const filePath = `file://${request.url.slice('feishin://'.length)}`;
                 const response = await net.fetch(filePath);
                 const contentType = response.headers.get('content-type');
 
@@ -657,7 +647,9 @@ if (!singleInstance) {
             });
 
             createWindow();
-            createTray();
+            if (store.get('window_enable_tray', true)) {
+                createTray();
+            }
             app.on('activate', () => {
                 // On macOS it's common to re-create a window in the app when the
                 // dock icon is clicked and there are no other windows open.
@@ -669,4 +661,21 @@ if (!singleInstance) {
             });
         })
         .catch(console.log);
+}
+
+// Register 'open-item' handler globally, ensuring it is only registered once
+if (!ipcMain.eventNames().includes('open-item')) {
+    ipcMain.handle('open-item', async (_event, path: string) => {
+        return new Promise<void>((resolve, reject) => {
+            access(path, constants.F_OK, (error) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                shell.showItemInFolder(path);
+                resolve();
+            });
+        });
+    });
 }

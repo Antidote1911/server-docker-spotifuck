@@ -1,25 +1,28 @@
 {
-    "name": "spotifuck",
-    "productName": "Spotifuck",
-    "description": "Spotifuck music server",
-    "version": "0.7.1",
+    "name": "feishin",
+    "productName": "Feishin",
+    "description": "Feishin music server",
+    "version": "0.12.3",
     "scripts": {
         "build": "concurrently \"npm run build:main\" \"npm run build:renderer\" \"npm run build:remote\"",
         "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
         "build:remote": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.remote.prod.ts",
         "build:renderer": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.prod.ts",
         "build:web": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.web.prod.ts",
-        "build:docker": "docker build -t jeffvli/spotifuck .",
+        "build:docker": "docker build -t jeffvli/feishin .",
         "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
         "lint": "concurrently \"npm run lint:code\" \"npm run lint:styles\"",
         "lint:code": "cross-env NODE_ENV=development eslint . --ext .js,.jsx,.ts,.tsx --fix",
         "lint:styles": "npx stylelint **/*.tsx --fix",
-        "package": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
-        "package:pr": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --win --mac --linux",
-        "package:dev": "ts-node ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --dir",
-        "postinstall": "ts-node .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts",
-        "start": "ts-node ./.erb/scripts/check-port-in-use.js && npm run start:renderer",
-        "start:main": "cross-env NODE_ENV=development electron -r ts-node/register/transpile-only ./src/main/main.ts",
+        "package": "node --import tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
+        "package:pr": "node --import tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --win --mac --linux",
+        "package:pr:macos": "node --import tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --mac",
+        "package:pr:windows": "node --import tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --win",
+        "package:pr:linux": "node --import tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --linux",
+        "package:dev": "node --import tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never --dir",
+        "postinstall": "node --import tsx .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts",
+        "start": "node --import tsx ./.erb/scripts/check-port-in-use.js && npm run start:renderer",
+        "start:main": "cross-env NODE_ENV=development  NODE_OPTIONS=\"--import tsx\" electron -r ts-node/register/transpile-only ./src/main/main.ts",
         "start:preload": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.preload.dev.ts",
         "start:remote": "cross-env NODE_ENV=developemnt TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.remote.dev.ts",
         "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
@@ -45,8 +48,8 @@
         ]
     },
     "build": {
-        "productName": "Spotifuck",
-        "appId": "org.jeffvli.spotifuck",
+        "productName": "Feishin",
+        "appId": "org.jeffvli.feishin",
         "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
         "asar": true,
         "asarUnpack": "**\\*.{node,dll}",
@@ -56,7 +59,7 @@
             "package.json"
         ],
         "afterSign": ".erb/scripts/notarize.js",
-        "electronVersion": "27.1.0",
+        "electronVersion": "31.2.0",
         "mac": {
             "target": {
                 "target": "default",
@@ -145,12 +148,12 @@
         "publish": {
             "provider": "github",
             "owner": "jeffvli",
-            "repo": "spotifuck"
+            "repo": "feishin"
         }
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/jeffvli/spotifuck.git"
+        "url": "git+https://github.com/jeffvli/feishin.git"
     },
     "author": {
         "name": "jeffvli",
@@ -159,7 +162,7 @@
     "contributors": [],
     "license": "GPL-3.0",
     "bugs": {
-        "url": "https://github.com/jeffvli/spotifuck/issues"
+        "url": "https://github.com/jeffvli/feishin/issues"
     },
     "keywords": [
         "subsonic",
@@ -169,7 +172,7 @@
         "react",
         "electron"
     ],
-    "homepage": "https://github.com/jeffvli/spotifuck",
+    "homepage": "https://github.com/jeffvli/feishin",
     "jest": {
         "testURL": "http://localhost/",
         "testEnvironment": "jsdom",
@@ -199,12 +202,13 @@
         ]
     },
     "devDependencies": {
-        "@electron/rebuild": "^3.2.10",
+        "@electron/rebuild": "^3.6.0",
         "@pmmmwh/react-refresh-webpack-plugin": "0.5.5",
         "@stylelint/postcss-css-in-js": "^0.38.0",
         "@teamsupercell/typings-for-css-modules-loader": "^2.5.1",
         "@testing-library/jest-dom": "^5.16.4",
         "@testing-library/react": "^13.0.0",
+        "@types/dompurify": "^3.0.5",
         "@types/electron-localshortcut": "^3.1.0",
         "@types/jest": "^27.4.1",
         "@types/lodash": "^4.14.188",
@@ -216,7 +220,6 @@
         "@types/react-virtualized-auto-sizer": "^1.0.1",
         "@types/react-window": "^1.8.5",
         "@types/react-window-infinite-loader": "^1.0.6",
-        "@types/sanitize-html": "^2.11.0",
         "@types/styled-components": "^5.1.26",
         "@types/terser-webpack-plugin": "^5.0.4",
         "@types/webpack-bundle-analyzer": "^4.4.1",
@@ -231,7 +234,7 @@
         "css-loader": "^6.7.1",
         "css-minimizer-webpack-plugin": "^3.4.1",
         "detect-port": "^1.3.0",
-        "electron": "^26.6.10",
+        "electron": "^33.3.1",
         "electron-builder": "^24.13.3",
         "electron-devtools-installer": "^3.2.0",
         "electron-notarize": "^1.2.1",
@@ -253,7 +256,7 @@
         "file-loader": "^6.2.0",
         "html-webpack-plugin": "^5.5.0",
         "husky": "^7.0.4",
-        "i18next-parser": "^6.6.0",
+        "i18next-parser": "^9.0.2",
         "identity-obj-proxy": "^3.0.0",
         "jest": "^27.5.1",
         "lint-staged": "^12.3.7",
@@ -261,7 +264,7 @@
         "postcss-scss": "^4.0.4",
         "postcss-styled-syntax": "^0.5.0",
         "postcss-syntax": "^0.36.2",
-        "prettier": "^2.6.2",
+        "prettier": "^3.3.3",
         "react-refresh": "^0.12.0",
         "react-refresh-typescript": "^2.0.4",
         "react-test-renderer": "^18.0.0",
@@ -278,12 +281,13 @@
         "terser-webpack-plugin": "^5.3.1",
         "ts-jest": "^27.1.4",
         "ts-loader": "^9.2.8",
-        "ts-node": "^10.7.0",
+        "ts-node": "^10.9.2",
         "tsconfig-paths-webpack-plugin": "^4.0.0",
+        "tsx": "^4.16.2",
         "typescript": "^5.2.2",
         "typescript-plugin-styled-components": "^3.0.0",
         "url-loader": "^4.1.1",
-        "webpack": "^5.71.0",
+        "webpack": "^5.94.0",
         "webpack-bundle-analyzer": "^4.5.0",
         "webpack-cli": "^4.9.2",
         "webpack-dev-server": "^4.8.0",
@@ -308,15 +312,18 @@
         "@tanstack/react-query-persist-client": "^4.32.1",
         "@ts-rest/core": "^3.23.0",
         "@xhayper/discord-rpc": "^1.0.24",
+        "audiomotion-analyzer": "^4.5.0",
+        "auto-text-size": "^0.2.3",
         "axios": "^1.6.0",
         "clsx": "^2.0.0",
         "cmdk": "^0.2.0",
         "dayjs": "^1.11.6",
+        "dompurify": "^3.1.6",
         "electron-debug": "^3.2.0",
         "electron-localshortcut": "^3.2.1",
         "electron-log": "^5.1.1",
         "electron-store": "^8.1.0",
-        "electron-updater": "^4.6.5",
+        "electron-updater": "^6.3.1",
         "fast-average-color": "^9.3.0",
         "format-duration": "^2.0.0",
         "framer-motion": "^11.0.0",
@@ -331,7 +338,7 @@
         "memoize-one": "^6.0.0",
         "nanoid": "^3.3.3",
         "net": "^1.0.2",
-        "node-mpv": "github:jeffvli/Node-MPV",
+        "node-mpv": "github:jeffvli/Node-MPV#32b4d64395289ad710c41d481d2707a7acfc228f",
         "overlayscrollbars": "^2.2.1",
         "overlayscrollbars-react": "^0.5.1",
         "react": "^18.2.0",
@@ -346,7 +353,6 @@
         "react-virtualized-auto-sizer": "^1.0.17",
         "react-window": "^1.8.9",
         "react-window-infinite-loader": "^1.0.9",
-        "sanitize-html": "^2.13.0",
         "semver": "^7.5.4",
         "styled-components": "^6.0.8",
         "swiper": "^9.3.1",
@@ -357,8 +363,16 @@
         "styled-components": "^6"
     },
     "devEngines": {
-        "node": ">=14.x",
-        "npm": ">=7.x"
+        "runtime": {
+            "name": "node",
+            "version": ">=18.x",
+            "onFail": "error"
+        },
+        "packageManager": {
+            "name": "npm",
+            "version": ">=7.x",
+            "onFail": "error"
+        }
     },
     "browserslist": [],
     "electronmon": {

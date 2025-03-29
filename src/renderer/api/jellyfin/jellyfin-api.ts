@@ -6,8 +6,9 @@ import qs from 'qs';
 import { ServerListItem } from '/@/renderer/api/types';
 import omitBy from 'lodash/omitBy';
 import { z } from 'zod';
-import { authenticationFailure } from '/@/renderer/api/utils';
+import { authenticationFailure, getClientType } from '/@/renderer/api/utils';
 import i18n from '/@/i18n/i18n';
+import packageJson from '../../../../package.json';
 
 const c = initContract();
 
@@ -24,9 +25,6 @@ export const contract = c.router({
     },
     authenticate: {
         body: jfType._parameters.authenticate,
-        headers: z.object({
-            'X-Emby-Authorization': z.string(),
-        }),
         method: 'POST',
         path: 'users/authenticatebyname',
         responses: {
@@ -228,6 +226,15 @@ export const contract = c.router({
             400: jfType._response.error,
         },
     },
+    movePlaylistItem: {
+        body: null,
+        method: 'POST',
+        path: 'playlists/:playlistId/items/:itemId/move/:newIdx',
+        responses: {
+            200: jfType._response.moveItem,
+            400: jfType._response.error,
+        },
+    },
     removeFavorite: {
         body: jfType._parameters.favorite,
         method: 'DELETE',
@@ -285,8 +292,8 @@ export const contract = c.router({
     },
     updatePlaylist: {
         body: jfType._parameters.updatePlaylist,
-        method: 'PUT',
-        path: 'items/:id',
+        method: 'POST',
+        path: 'playlists/:id',
         responses: {
             200: jfType._response.updatePlaylist,
             400: jfType._response.error,
@@ -333,6 +340,12 @@ const parsePath = (fullPath: string) => {
     };
 };
 
+export const createAuthHeader = (): string => {
+    return `MediaBrowser Client="Feishin", Device="${getClientType()}", DeviceId="${
+        useAuthStore.getState().deviceId
+    }", Version="${packageJson.version}"`;
+};
+
 export const jfApiClient = (args: {
     server: ServerListItem | null;
     signal?: AbortSignal;
@@ -359,7 +372,9 @@ export const jfApiClient = (args: {
                     data: body,
                     headers: {
                         ...headers,
-                        ...(token && { 'X-MediaBrowser-Token': token }),
+                        ...(token
+                            ? { Authorization: createAuthHeader().concat(`, Token="${token}"`) }
+                            : { Authorization: createAuthHeader() }),
                     },
                     method: method as Method,
                     params,

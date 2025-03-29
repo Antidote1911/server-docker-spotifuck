@@ -11,7 +11,13 @@ import { generatePath, useParams } from 'react-router';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { queryKeys } from '/@/renderer/api/query-keys';
-import { AlbumListSort, LibraryItem, QueueSong, SortOrder } from '/@/renderer/api/types';
+import {
+    AlbumListQuery,
+    AlbumListSort,
+    LibraryItem,
+    QueueSong,
+    SortOrder,
+} from '/@/renderer/api/types';
 import { Button, Popover, Spoiler } from '/@/renderer/components';
 import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel';
 import {
@@ -105,28 +111,32 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
             return [];
         }
 
-        const uniqueDiscNumbers = new Set(detailQuery.data?.songs.map((s) => s.discNumber));
+        let discNumber = -1;
+        let discSubtitle: string | null = null;
+
         const rowData: (QueueSong | { id: string; name: string })[] = [];
+        const discTranslated = t('common.disc', { postProcess: 'upperCase' });
 
-        for (const discNumber of uniqueDiscNumbers.values()) {
-            const songsByDiscNumber = detailQuery.data?.songs.filter(
-                (s) => s.discNumber === discNumber,
-            );
+        for (const song of detailQuery.data.songs) {
+            if (song.discNumber !== discNumber || song.discSubtitle !== discSubtitle) {
+                discNumber = song.discNumber;
+                discSubtitle = song.discSubtitle;
 
-            const discSubtitle = songsByDiscNumber?.[0]?.discSubtitle;
-            const discName = [`Disc ${discNumber}`.toLocaleUpperCase(), discSubtitle]
-                .filter(Boolean)
-                .join(': ');
+                let id = `disc-${discNumber}`;
+                let name = `${discTranslated} ${discNumber}`;
 
-            rowData.push({
-                id: `disc-${discNumber}`,
-                name: discName,
-            });
-            rowData.push(...songsByDiscNumber);
+                if (discSubtitle) {
+                    id += `-${discSubtitle}`;
+                    name += `: ${discSubtitle}`;
+                }
+
+                rowData.push({ id, name });
+            }
+            rowData.push(song);
         }
 
         return rowData;
-    }, [detailQuery.data?.songs]);
+    }, [detailQuery.data?.songs, t]);
 
     const [pagination, setPagination] = useSetState({
         artist: 0,
@@ -160,13 +170,12 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
         query: {
             _custom: {
                 jellyfin: {
-                    AlbumArtistIds: detailQuery?.data?.albumArtists[0]?.id,
                     ExcludeItemIds: detailQuery?.data?.id,
                 },
-                navidrome: {
-                    artist_id: detailQuery?.data?.albumArtists[0]?.id,
-                },
             },
+            artistIds: detailQuery?.data?.albumArtists.length
+                ? [detailQuery?.data?.albumArtists[0].id]
+                : undefined,
             limit: 15,
             sortBy: AlbumListSort.YEAR,
             sortOrder: SortOrder.DESC,
@@ -175,15 +184,8 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
         serverId: server?.id,
     });
 
-    const relatedAlbumGenresRequest = {
-        _custom: {
-            jellyfin: {
-                GenreIds: detailQuery?.data?.genres?.[0]?.id,
-            },
-            navidrome: {
-                genre_id: detailQuery?.data?.genres?.[0]?.id,
-            },
-        },
+    const relatedAlbumGenresRequest: AlbumListQuery = {
+        genres: detailQuery.data?.genres.length ? [detailQuery.data.genres[0].id] : undefined,
         limit: 15,
         sortBy: AlbumListSort.RANDOM,
         sortOrder: SortOrder.ASC,
@@ -452,6 +454,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                         key={`table-${tableConfig.rowHeight}`}
                         ref={tableRef}
                         autoHeight
+                        shouldUpdateSong
                         stickyHeader
                         suppressCellFocus
                         suppressLoadingOverlay
@@ -461,6 +464,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                         context={{
                             currentSong,
                             isFocused,
+                            itemType: LibraryItem.SONG,
                             onCellContextMenu,
                             status,
                         }}
