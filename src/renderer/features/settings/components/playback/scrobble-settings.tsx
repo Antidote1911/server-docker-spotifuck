@@ -1,7 +1,13 @@
-import { NumberInput, Slider, Switch } from '/@/renderer/components';
-import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
-import { SettingOption, SettingsSection } from '../settings-section';
 import { useTranslation } from 'react-i18next';
+
+import {
+    SettingOption,
+    SettingsSection,
+} from '/@/renderer/features/settings/components/settings-section';
+import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Slider } from '/@/shared/components/slider/slider';
+import { Switch } from '/@/shared/components/switch/switch';
 
 export const ScrobbleSettings = () => {
     const { t } = useTranslation();
@@ -41,7 +47,6 @@ export const ScrobbleSettings = () => {
                     label={`${settings.scrobble.scrobbleAtPercentage}%`}
                     max={90}
                     min={25}
-                    w={100}
                     onChange={(e) => {
                         setSettings({
                             playback: {
@@ -53,6 +58,7 @@ export const ScrobbleSettings = () => {
                             },
                         });
                     }}
+                    w={100}
                 />
             ),
             description: t('setting.minimumScrobblePercentage', {
@@ -68,7 +74,6 @@ export const ScrobbleSettings = () => {
                     defaultValue={settings.scrobble.scrobbleAtDuration}
                     max={1200}
                     min={0}
-                    width={75}
                     onChange={(e) => {
                         if (e === '') return;
                         setSettings({
@@ -76,11 +81,12 @@ export const ScrobbleSettings = () => {
                                 ...settings,
                                 scrobble: {
                                     ...settings.scrobble,
-                                    scrobbleAtDuration: e,
+                                    scrobbleAtDuration: Number(e),
                                 },
                             },
                         });
                     }}
+                    width={75}
                 />
             ),
             description: t('setting.minimumScrobbleSeconds', {

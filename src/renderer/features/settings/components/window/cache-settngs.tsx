@@ -1,15 +1,18 @@
 import { closeAllModals, openModal } from '@mantine/modals';
 import { useQueryClient } from '@tanstack/react-query';
 import isElectron from 'is-electron';
-import { useTranslation } from 'react-i18next';
-import { Button, ConfirmModal, toast } from '/@/renderer/components';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import {
     SettingOption,
     SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
+import { Button } from '/@/shared/components/button/button';
+import { ConfirmModal } from '/@/shared/components/modal/modal';
+import { toast } from '/@/shared/components/toast/toast';
 
-const browser = isElectron() ? window.electron.browser : null;
+const browser = isElectron() ? window.api.browser : null;
 
 export const CacheSettings = () => {
     const [isClearing, setIsClearing] = useState(false);
@@ -57,10 +60,10 @@ export const CacheSettings = () => {
         {
             control: (
                 <Button
-                    compact
                     disabled={isClearing}
-                    variant="filled"
                     onClick={() => openResetConfirmModal(false)}
+                    size="compact-md"
+                    variant="filled"
                 >
                     {t('common.clear', { postProcess: 'sentenceCase' })}
                 </Button>
@@ -74,10 +77,10 @@ export const CacheSettings = () => {
         {
             control: (
                 <Button
-                    compact
                     disabled={isClearing}
-                    variant="filled"
                     onClick={() => openResetConfirmModal(true)}
+                    size="compact-md"
+                    variant="filled"
                 >
                     {t('common.clear', { postProcess: 'sentenceCase' })}
                 </Button>

@@ -1,16 +1,16 @@
-import { SelectItem } from '@mantine/core';
 import isElectron from 'is-electron';
 import { useTranslation } from 'react-i18next';
-import { useSettingsStoreActions, useGeneralSettings } from '../../../../store/settings.store';
+
 import {
-    SettingsSection,
     SettingOption,
+    SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
-import { Select } from '/@/renderer/components';
+import { useGeneralSettings, useSettingsStoreActions } from '/@/renderer/store';
+import { Select } from '/@/shared/components/select/select';
 
-const localSettings = isElectron() ? window.electron.localSettings : null;
+const localSettings = isElectron() ? window.api.localSettings : null;
 
-const PASSWORD_SETTINGS: SelectItem[] = [
+const PASSWORD_SETTINGS: { label: string; value: string }[] = [
     { label: 'libsecret', value: 'gnome_libsecret' },
     { label: 'KDE 4 (kwallet4)', value: 'kwallet' },
     { label: 'KDE 5 (kwallet5)', value: 'kwallet5' },

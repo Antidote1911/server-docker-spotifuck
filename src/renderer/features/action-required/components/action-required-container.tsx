@@ -1,23 +1,26 @@
-import { Stack, Group } from '@mantine/core';
-import { RiAlertFill } from 'react-icons/ri';
-import { Text } from '/@/renderer/components';
 import { ReactNode } from 'react';
+
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Text } from '/@/shared/components/text/text';
 
 interface ActionRequiredContainerProps {
     children: ReactNode;
     title: string;
 }
 
-export const ActionRequiredContainer = ({ title, children }: ActionRequiredContainerProps) => (
-    <Stack sx={{ cursor: 'default', maxWidth: '700px' }}>
+export const ActionRequiredContainer = ({ children, title }: ActionRequiredContainerProps) => (
+    <Stack style={{ cursor: 'default', maxWidth: '700px' }}>
         <Group>
-            <RiAlertFill
-                color="var(--warning-color)"
-                size={30}
+            <Icon
+                fill="warn"
+                icon="warn"
+                size="lg"
             />
             <Text
                 size="xl"
-                sx={{ textTransform: 'uppercase' }}
+                style={{ textTransform: 'uppercase' }}
             >
                 {title}
             </Text>

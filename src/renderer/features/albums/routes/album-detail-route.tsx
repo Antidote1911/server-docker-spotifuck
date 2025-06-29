@@ -1,16 +1,18 @@
-import { NativeScrollArea, Spinner } from '/@/renderer/components';
-import { AnimatedPage, LibraryHeaderBar } from '/@/renderer/features/shared';
-import { useRef } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { useAlbumDetail } from '/@/renderer/features/albums/queries/album-detail-query';
+
+import { useRef } from 'react';
 import { useParams } from 'react-router';
-import { useFastAverageColor } from '/@/renderer/hooks';
+
+import { NativeScrollArea } from '/@/renderer/components/native-scroll-area/native-scroll-area';
 import { AlbumDetailContent } from '/@/renderer/features/albums/components/album-detail-content';
 import { AlbumDetailHeader } from '/@/renderer/features/albums/components/album-detail-header';
+import { useAlbumDetail } from '/@/renderer/features/albums/queries/album-detail-query';
 import { usePlayQueueAdd } from '/@/renderer/features/player';
-import { usePlayButtonBehavior } from '/@/renderer/store/settings.store';
-import { LibraryItem } from '/@/renderer/api/types';
+import { AnimatedPage, LibraryHeaderBar } from '/@/renderer/features/shared';
+import { useFastAverageColor } from '/@/renderer/hooks';
 import { useCurrentServer, useGeneralSettings } from '/@/renderer/store';
+import { usePlayButtonBehavior } from '/@/renderer/store/settings.store';
+import { LibraryItem } from '/@/shared/types/domain-types';
 
 const AlbumDetailRoute = () => {
     const tableRef = useRef<AgGridReactType | null>(null);
@@ -21,7 +23,7 @@ const AlbumDetailRoute = () => {
     const { albumId } = useParams() as { albumId: string };
     const server = useCurrentServer();
     const detailQuery = useAlbumDetail({ query: { id: albumId }, serverId: server?.id });
-    const { color: backgroundColor, colorId } = useFastAverageColor({
+    const { background: backgroundColor, colorId } = useFastAverageColor({
         id: albumId,
         src: detailQuery.data?.imageUrl,
         srcLoaded: !detailQuery.isLoading,
@@ -39,17 +41,12 @@ const AlbumDetailRoute = () => {
         });
     };
 
-    if (!backgroundColor || colorId !== albumId) {
-        return <Spinner container />;
-    }
-
     const backgroundUrl = detailQuery.data?.imageUrl || '';
     const background = (albumBackground && `url(${backgroundUrl})`) || backgroundColor;
 
     return (
         <AnimatedPage key={`album-detail-${albumId}`}>
             <NativeScrollArea
-                ref={scrollAreaRef}
                 pageHeaderProps={{
                     backgroundColor: backgroundColor || undefined,
                     children: (
@@ -63,13 +60,15 @@ const AlbumDetailRoute = () => {
                     offset: 200,
                     target: headerRef,
                 }}
+                ref={scrollAreaRef}
             >
                 <AlbumDetailHeader
-                    ref={headerRef}
                     background={{
                         background,
                         blur: (albumBackground && albumBackgroundBlur) || 0,
+                        loading: !backgroundColor || colorId !== albumId,
                     }}
+                    ref={headerRef}
                 />
                 <AlbumDetailContent
                     background={background}

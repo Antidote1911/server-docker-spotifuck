@@ -1,16 +1,15 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef } from 'react';
-import { ActionIcon, Group, Stack } from '@mantine/core';
-import {
-    AlbumListSort,
-    LibraryItem,
-    ServerType,
-    SongListSort,
-    SortOrder,
-} from '/@/renderer/api/types';
-import { FeatureCarousel, NativeScrollArea, Spinner, TextTitle } from '/@/renderer/components';
+import { useTranslation } from 'react-i18next';
+
+import { queryKeys } from '/@/renderer/api/query-keys';
+import { FeatureCarousel } from '/@/renderer/components/feature-carousel/feature-carousel';
+import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel/grid-carousel';
+import { NativeScrollArea } from '/@/renderer/components/native-scroll-area/native-scroll-area';
 import { useAlbumList } from '/@/renderer/features/albums';
 import { useRecentlyPlayed } from '/@/renderer/features/home/queries/recently-played-query';
 import { AnimatedPage, LibraryHeaderBar } from '/@/renderer/features/shared';
+import { useSongList } from '/@/renderer/features/songs';
 import { AppRoute } from '/@/renderer/router/routes';
 import {
     HomeItem,
@@ -18,13 +17,20 @@ import {
     useGeneralSettings,
     useWindowSettings,
 } from '/@/renderer/store';
-import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel';
-import { Platform } from '/@/renderer/types';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '/@/renderer/api/query-keys';
-import { useTranslation } from 'react-i18next';
-import { RiRefreshLine } from 'react-icons/ri';
-import { useSongList } from '/@/renderer/features/songs';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { Spinner } from '/@/shared/components/spinner/spinner';
+import { Stack } from '/@/shared/components/stack/stack';
+import { TextTitle } from '/@/shared/components/text-title/text-title';
+import {
+    AlbumListSort,
+    LibraryItem,
+    ServerType,
+    SongListSort,
+    SortOrder,
+} from '/@/shared/types/domain-types';
+import { Platform } from '/@/shared/types/types';
 
 const HomeRoute = () => {
     const { t } = useTranslation();
@@ -137,33 +143,6 @@ const HomeRoute = () => {
     }
 
     const carousels = {
-        [HomeItem.RANDOM]: {
-            data: random?.data?.items,
-            itemType: LibraryItem.ALBUM,
-            sortBy: AlbumListSort.RANDOM,
-            sortOrder: SortOrder.ASC,
-            title: t('page.home.explore', { postProcess: 'sentenceCase' }),
-        },
-        [HomeItem.RECENTLY_PLAYED]: {
-            data: recentlyPlayed?.data?.items,
-            itemType: LibraryItem.ALBUM,
-            pagination: {
-                itemsPerPage,
-            },
-            sortBy: AlbumListSort.RECENTLY_PLAYED,
-            sortOrder: SortOrder.DESC,
-            title: t('page.home.recentlyPlayed', { postProcess: 'sentenceCase' }),
-        },
-        [HomeItem.RECENTLY_ADDED]: {
-            data: recentlyAdded?.data?.items,
-            itemType: LibraryItem.ALBUM,
-            pagination: {
-                itemsPerPage,
-            },
-            sortBy: AlbumListSort.RECENTLY_ADDED,
-            sortOrder: SortOrder.DESC,
-            title: t('page.home.newlyAdded', { postProcess: 'sentenceCase' }),
-        },
         [HomeItem.MOST_PLAYED]: {
             data:
                 server?.type === ServerType.JELLYFIN
@@ -179,6 +158,33 @@ const HomeRoute = () => {
                     : AlbumListSort.PLAY_COUNT,
             sortOrder: SortOrder.DESC,
             title: t('page.home.mostPlayed', { postProcess: 'sentenceCase' }),
+        },
+        [HomeItem.RANDOM]: {
+            data: random?.data?.items,
+            itemType: LibraryItem.ALBUM,
+            sortBy: AlbumListSort.RANDOM,
+            sortOrder: SortOrder.ASC,
+            title: t('page.home.explore', { postProcess: 'sentenceCase' }),
+        },
+        [HomeItem.RECENTLY_ADDED]: {
+            data: recentlyAdded?.data?.items,
+            itemType: LibraryItem.ALBUM,
+            pagination: {
+                itemsPerPage,
+            },
+            sortBy: AlbumListSort.RECENTLY_ADDED,
+            sortOrder: SortOrder.DESC,
+            title: t('page.home.newlyAdded', { postProcess: 'sentenceCase' }),
+        },
+        [HomeItem.RECENTLY_PLAYED]: {
+            data: recentlyPlayed?.data?.items,
+            itemType: LibraryItem.ALBUM,
+            pagination: {
+                itemsPerPage,
+            },
+            sortBy: AlbumListSort.RECENTLY_PLAYED,
+            sortOrder: SortOrder.DESC,
+            title: t('page.home.recentlyPlayed', { postProcess: 'sentenceCase' }),
         },
     };
 
@@ -200,7 +206,7 @@ const HomeRoute = () => {
 
     const invalidateCarouselQuery = (carousel: {
         itemType: LibraryItem;
-        sortBy: SongListSort | AlbumListSort;
+        sortBy: AlbumListSort | SongListSort;
         sortOrder: SortOrder;
     }) => {
         if (carousel.itemType === LibraryItem.ALBUM) {
@@ -231,9 +237,7 @@ const HomeRoute = () => {
     return (
         <AnimatedPage>
             <NativeScrollArea
-                ref={scrollAreaRef}
                 pageHeaderProps={{
-                    backgroundColor: 'var(--titlebar-bg)',
                     children: (
                         <LibraryHeaderBar>
                             <LibraryHeaderBar.Title>
@@ -243,17 +247,17 @@ const HomeRoute = () => {
                     ),
                     offset: 200,
                 }}
+                ref={scrollAreaRef}
             >
                 <Stack
+                    gap="lg"
                     mb="5rem"
                     pt={windowBarStyle === Platform.WEB ? '5rem' : '3rem'}
                     px="2rem"
-                    spacing="lg"
                 >
                     {homeFeature && <FeatureCarousel data={featureItemsWithImage} />}
                     {sortedCarousel.map((carousel) => (
                         <MemoizedSwiperGridCarousel
-                            key={`carousel-${carousel.uniqueId}`}
                             cardRows={[
                                 {
                                     property: 'name',
@@ -287,6 +291,7 @@ const HomeRoute = () => {
                             ]}
                             data={carousel.data}
                             itemType={carousel.itemType}
+                            key={`carousel-${carousel.uniqueId}`}
                             route={{
                                 route: AppRoute.LIBRARY_ALBUMS_DETAIL,
                                 slugs: [
@@ -303,17 +308,12 @@ const HomeRoute = () => {
                             title={{
                                 label: (
                                     <Group>
-                                        <TextTitle
-                                            order={2}
-                                            weight={700}
-                                        >
-                                            {carousel.title}
-                                        </TextTitle>
-
+                                        <TextTitle order={3}>{carousel.title}</TextTitle>
                                         <ActionIcon
                                             onClick={() => invalidateCarouselQuery(carousel)}
+                                            variant="transparent"
                                         >
-                                            <RiRefreshLine />
+                                            <Icon icon="refresh" />
                                         </ActionIcon>
                                     </Group>
                                 ),

@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react';
-import { Group, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { CreatePlaylistBody, ServerType, SongListSort } from '/@/renderer/api/types';
-import { Button, Switch, Text, TextInput, toast } from '/@/renderer/components';
+import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import {
     PlaylistQueryBuilder,
     PlaylistQueryBuilderRef,
@@ -10,9 +9,17 @@ import {
 import { useCreatePlaylist } from '/@/renderer/features/playlists/mutations/create-playlist-mutation';
 import { convertQueryGroupToNDQuery } from '/@/renderer/features/playlists/utils';
 import { useCurrentServer } from '/@/renderer/store';
-import { useTranslation } from 'react-i18next';
-import { hasFeature } from '/@/renderer/api/utils';
-import { ServerFeature } from '/@/renderer/api/features-types';
+import { hasFeature } from '/@/shared/api/utils';
+import { Button } from '/@/shared/components/button/button';
+import { Group } from '/@/shared/components/group/group';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Switch } from '/@/shared/components/switch/switch';
+import { TextInput } from '/@/shared/components/text-input/text-input';
+import { Text } from '/@/shared/components/text/text';
+import { Textarea } from '/@/shared/components/textarea/textarea';
+import { toast } from '/@/shared/components/toast/toast';
+import { CreatePlaylistBody, ServerType, SongListSort } from '/@/shared/types/domain-types';
+import { ServerFeature } from '/@/shared/types/features-types';
 
 interface CreatePlaylistFormProps {
     onCancel: () => void;
@@ -95,19 +102,21 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
             <Stack>
                 <TextInput
                     data-autofocus
-                    required
                     label={t('form.createPlaylist.input', {
                         context: 'name',
                         postProcess: 'titleCase',
                     })}
+                    required
                     {...form.getInputProps('name')}
                 />
                 {server?.type === ServerType.NAVIDROME && (
-                    <TextInput
+                    <Textarea
+                        autosize
                         label={t('form.createPlaylist.input', {
                             context: 'description',
                             postProcess: 'titleCase',
                         })}
+                        minRows={5}
                         {...form.getInputProps('comment')}
                     />
                 )}
@@ -135,20 +144,20 @@ export const CreatePlaylistForm = ({ onCancel }: CreatePlaylistFormProps) => {
                     <Stack pt="1rem">
                         <Text>Query Editor</Text>
                         <PlaylistQueryBuilder
-                            ref={queryBuilderRef}
                             isSaving={false}
                             limit={undefined}
                             query={undefined}
+                            ref={queryBuilderRef}
                             sortBy={SongListSort.ALBUM}
                             sortOrder="asc"
                         />
                     </Stack>
                 )}
 
-                <Group position="right">
+                <Group justify="flex-end">
                     <Button
-                        variant="subtle"
                         onClick={onCancel}
+                        variant="subtle"
                     >
                         {t('common.cancel', { postProcess: 'titleCase' })}
                     </Button>

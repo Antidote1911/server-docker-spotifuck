@@ -1,24 +1,29 @@
-import { ChangeEvent, MutableRefObject } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { Flex, Group, Stack } from '@mantine/core';
+
 import debounce from 'lodash/debounce';
-import { GenreListQuery, LibraryItem } from '/@/renderer/api/types';
-import { PageHeader, SearchInput } from '/@/renderer/components';
+import { ChangeEvent, MutableRefObject } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { PageHeader } from '/@/renderer/components/page-header/page-header';
 import { VirtualInfiniteGridRef } from '/@/renderer/components/virtual-grid';
 import { GenreListHeaderFilters } from '/@/renderer/features/genres/components/genre-list-header-filters';
 import { FilterBar, LibraryHeaderBar } from '/@/renderer/features/shared';
+import { SearchInput } from '/@/renderer/features/shared/components/search-input';
 import { useContainerQuery } from '/@/renderer/hooks';
-import { GenreListFilter, useCurrentServer } from '/@/renderer/store';
-import { useTranslation } from 'react-i18next';
 import { useDisplayRefresh } from '/@/renderer/hooks/use-display-refresh';
+import { GenreListFilter, useCurrentServer } from '/@/renderer/store';
+import { Flex } from '/@/shared/components/flex/flex';
+import { Group } from '/@/shared/components/group/group';
+import { Stack } from '/@/shared/components/stack/stack';
+import { GenreListQuery, LibraryItem } from '/@/shared/types/domain-types';
 
 interface GenreListHeaderProps {
-    gridRef: MutableRefObject<VirtualInfiniteGridRef | null>;
+    gridRef: MutableRefObject<null | VirtualInfiniteGridRef>;
     itemCount?: number;
     tableRef: MutableRefObject<AgGridReactType | null>;
 }
 
-export const GenreListHeader = ({ itemCount, gridRef, tableRef }: GenreListHeaderProps) => {
+export const GenreListHeader = ({ gridRef, itemCount, tableRef }: GenreListHeaderProps) => {
     const { t } = useTranslation();
     const cq = useContainerQuery();
     const server = useCurrentServer();
@@ -36,10 +41,10 @@ export const GenreListHeader = ({ itemCount, gridRef, tableRef }: GenreListHeade
 
     return (
         <Stack
+            gap={0}
             ref={cq.ref}
-            spacing={0}
         >
-            <PageHeader backgroundColor="var(--titlebar-bg)">
+            <PageHeader>
                 <Flex
                     justify="space-between"
                     w="100%"
@@ -57,7 +62,6 @@ export const GenreListHeader = ({ itemCount, gridRef, tableRef }: GenreListHeade
                     <Group>
                         <SearchInput
                             defaultValue={filter.searchTerm}
-                            openedWidth={cq.isMd ? 250 : cq.isSm ? 200 : 150}
                             onChange={handleSearch}
                         />
                     </Group>

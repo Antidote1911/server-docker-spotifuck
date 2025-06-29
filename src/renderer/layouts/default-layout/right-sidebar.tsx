@@ -1,24 +1,14 @@
-import { AnimatePresence, motion, Variants } from 'framer-motion';
+import { AnimatePresence, motion, Variants } from 'motion/react';
 import { forwardRef, Ref } from 'react';
 import { useLocation } from 'react-router';
-import styled from 'styled-components';
-import { SidebarPlayQueue, DrawerPlayQueue } from '/@/renderer/features/now-playing';
+
+import styles from './right-sidebar.module.css';
+
+import { DrawerPlayQueue, SidebarPlayQueue } from '/@/renderer/features/now-playing';
 import { ResizeHandle } from '/@/renderer/features/shared';
 import { AppRoute } from '/@/renderer/router/routes';
 import { useGeneralSettings, useSidebarStore, useWindowSettings } from '/@/renderer/store';
-import { Platform } from '/@/renderer/types';
-
-const RightSidebarContainer = styled(motion.aside)`
-    position: relative;
-    grid-area: right-sidebar;
-    height: 100%;
-    background: var(--sidebar-bg);
-    border-left: var(--sidebar-border);
-
-    .current-song-cell:not(.current-playlist-song-cell) svg {
-        display: none;
-    }
-`;
+import { Platform } from '/@/shared/types/types';
 
 const queueSidebarVariants: Variants = {
     closed: (rightWidth) => ({
@@ -37,12 +27,6 @@ const queueSidebarVariants: Variants = {
         zIndex: 120,
     }),
 };
-
-const QueueDrawer = styled(motion.div)`
-    background: var(--main-bg);
-    border: 3px solid var(--generic-border-color);
-    border-radius: 10px;
-`;
 
 const queueDrawerVariants: Variants = {
     closed: (windowBarStyle) => ({
@@ -93,53 +77,55 @@ export const RightSidebar = forwardRef(
         ref: Ref<HTMLDivElement>,
     ) => {
         const { windowBarStyle } = useWindowSettings();
-        const { rightWidth, rightExpanded } = useSidebarStore();
+        const { rightExpanded, rightWidth } = useSidebarStore();
         const { sideQueueType } = useGeneralSettings();
         const location = useLocation();
         const showSideQueue = rightExpanded && location.pathname !== AppRoute.NOW_PLAYING;
 
         return (
             <AnimatePresence
-                key="queue-sidebar"
-                presenceAffectsLayout
                 initial={false}
+                key="queue-sidebar"
                 mode="sync"
+                presenceAffectsLayout
             >
                 {showSideQueue && (
                     <>
                         {sideQueueType === 'sideQueue' ? (
-                            <RightSidebarContainer
-                                key="queue-sidebar"
+                            <motion.aside
                                 animate="open"
+                                className={styles.rightSidebarContainer}
                                 custom={rightWidth}
                                 exit="closed"
                                 id="sidebar-queue"
                                 initial="closed"
+                                key="queue-sidebar"
                                 variants={queueSidebarVariants}
                             >
                                 <ResizeHandle
-                                    ref={ref}
-                                    $isResizing={isResizingRight}
-                                    $placement="left"
+                                    isResizing={isResizingRight}
                                     onMouseDown={(e) => {
                                         e.preventDefault();
                                         startResizing('right');
                                     }}
+                                    placement="left"
+                                    ref={ref}
                                 />
                                 <SidebarPlayQueue />
-                            </RightSidebarContainer>
+                            </motion.aside>
                         ) : (
-                            <QueueDrawer
-                                key="queue-drawer"
+                            <motion.div
                                 animate="open"
+                                className={styles.queueDrawer}
                                 custom={windowBarStyle}
                                 exit="closed"
                                 id="drawer-queue"
                                 initial="closed"
+                                key="queue-drawer"
                                 variants={queueDrawerVariants}
                             >
                                 <DrawerPlayQueue />
-                            </QueueDrawer>
+                            </motion.div>
                         )}
                     </>
                 )}

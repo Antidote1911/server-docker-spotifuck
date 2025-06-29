@@ -1,6 +1,8 @@
 import type { ICellRendererParams } from '@ag-grid-community/core';
-import { Text } from '/@/renderer/components/text';
+
 import { CellContainer } from '/@/renderer/components/virtual-table/cells/generic-cell';
+import { Icon } from '/@/shared/components/icon/icon';
+import { Text } from '/@/shared/components/text/text';
 
 // const AnimatedSvg = () => {
 //     return (
@@ -11,7 +13,7 @@ import { CellContainer } from '/@/renderer/components/virtual-table/cells/generi
 //             >
 //                 <g>
 //                     <rect
-//                         fill="var(--primary-color)"
+//                         fill="var(--theme-colors-primary-filled)"
 //                         height="80"
 //                         id="bar-1"
 //                         width="12"
@@ -30,7 +32,7 @@ import { CellContainer } from '/@/renderer/components/virtual-table/cells/generi
 //                         />
 //                     </rect>
 //                     <rect
-//                         fill="var(--primary-color)"
+//                         fill="var(--theme-colors-primary-filled)"
 //                         height="80"
 //                         id="bar-2"
 //                         width="12"
@@ -49,7 +51,7 @@ import { CellContainer } from '/@/renderer/components/virtual-table/cells/generi
 //                         />
 //                     </rect>
 //                     <rect
-//                         fill="var(--primary-color)"
+//                         fill="var(--theme-colors-primary-filled)"
 //                         height="80"
 //                         id="bar-3"
 //                         width="12"
@@ -68,7 +70,7 @@ import { CellContainer } from '/@/renderer/components/virtual-table/cells/generi
 //                         />
 //                     </rect>
 //                     <rect
-//                         fill="var(--primary-color)"
+//                         fill="var(--theme-colors-primary-filled)"
 //                         height="80"
 //                         id="bar-4"
 //                         width="12"
@@ -92,47 +94,47 @@ import { CellContainer } from '/@/renderer/components/virtual-table/cells/generi
 //     );
 // };
 
-const StaticSvg = () => {
-    return (
-        <div style={{ height: '1rem', transform: 'rotate(180deg)', width: '1rem' }}>
-            <svg
-                viewBox="100 130 57 80"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <rect
-                    fill="var(--primary-color)"
-                    height="20"
-                    width="12"
-                    x="100"
-                    y="130"
-                />
-                <rect
-                    fill="var(--primary-color)"
-                    height="60"
-                    width="12"
-                    x="115"
-                    y="130"
-                />
-                <rect
-                    fill="var(--primary-color)"
-                    height="80"
-                    width="12"
-                    x="130"
-                    y="130"
-                />
-                <rect
-                    fill="var(--primary-color)"
-                    height="45"
-                    width="12"
-                    x="145"
-                    y="130"
-                />
-            </svg>
-        </div>
-    );
-};
+// const StaticSvg = () => {
+//     return (
+//         <div style={{ height: '1rem', transform: 'rotate(180deg)', width: '1rem' }}>
+//             <svg
+//                 viewBox="100 130 57 80"
+//                 xmlns="http://www.w3.org/2000/svg"
+//             >
+//                 <rect
+//                     fill="var(--primary-color)"
+//                     height="20"
+//                     width="12"
+//                     x="100"
+//                     y="130"
+//                 />
+//                 <rect
+//                     fill="var(--primary-color)"
+//                     height="60"
+//                     width="12"
+//                     x="115"
+//                     y="130"
+//                 />
+//                 <rect
+//                     fill="var(--primary-color)"
+//                     height="80"
+//                     width="12"
+//                     x="130"
+//                     y="130"
+//                 />
+//                 <rect
+//                     fill="var(--primary-color)"
+//                     height="45"
+//                     width="12"
+//                     x="145"
+//                     y="130"
+//                 />
+//             </svg>
+//         </div>
+//     );
+// };
 
-export const RowIndexCell = ({ value, eGridCell }: ICellRendererParams) => {
+export const RowIndexCell = ({ eGridCell, value }: ICellRendererParams) => {
     const classList = eGridCell.classList;
     // const isFocused = classList.contains('focused');
     const isPlaying = classList.contains('playing');
@@ -140,17 +142,28 @@ export const RowIndexCell = ({ value, eGridCell }: ICellRendererParams) => {
         classList.contains('current-song-cell') || classList.contains('current-playlist-song-cell');
 
     return (
-        <CellContainer $position="right">
-            {isPlaying && (isCurrentSong ? <StaticSvg /> : null)}
-            <Text
-                $secondary
-                align="right"
-                className="current-song-child current-song-index"
-                overflow="hidden"
-                size="md"
-            >
-                {value}
-            </Text>
+        <CellContainer position="right">
+            {isPlaying && isCurrentSong ? (
+                <Icon
+                    fill="primary"
+                    icon="mediaPlay"
+                />
+            ) : isCurrentSong ? (
+                <Icon
+                    fill="primary"
+                    icon="mediaPause"
+                />
+            ) : (
+                <Text
+                    className="current-song-child current-song-index"
+                    isMuted
+                    overflow="hidden"
+                    size="md"
+                    style={{ textAlign: 'right' }}
+                >
+                    {value}
+                </Text>
+            )}
         </CellContainer>
     );
 };

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useParams } from 'react-router';
-import { LibraryItem } from '/@/renderer/api/types';
-import { NativeScrollArea, Spinner } from '/@/renderer/components';
+
+import { NativeScrollArea } from '/@/renderer/components/native-scroll-area/native-scroll-area';
 import { AlbumArtistDetailContent } from '/@/renderer/features/artists/components/album-artist-detail-content';
 import { AlbumArtistDetailHeader } from '/@/renderer/features/artists/components/album-artist-detail-header';
 import { useAlbumArtistDetail } from '/@/renderer/features/artists/queries/album-artist-detail-query';
@@ -10,21 +10,28 @@ import { AnimatedPage, LibraryHeaderBar } from '/@/renderer/features/shared';
 import { useFastAverageColor } from '/@/renderer/hooks';
 import { useCurrentServer } from '/@/renderer/store';
 import { usePlayButtonBehavior } from '/@/renderer/store/settings.store';
+import { LibraryItem } from '/@/shared/types/domain-types';
 
 const AlbumArtistDetailRoute = () => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const headerRef = useRef<HTMLDivElement>(null);
     const server = useCurrentServer();
 
-    const { albumArtistId } = useParams() as { albumArtistId: string };
+    const { albumArtistId, artistId } = useParams() as {
+        albumArtistId?: string;
+        artistId?: string;
+    };
+
+    const routeId = (artistId || albumArtistId) as string;
+
     const handlePlayQueueAdd = usePlayQueueAdd();
     const playButtonBehavior = usePlayButtonBehavior();
     const detailQuery = useAlbumArtistDetail({
-        query: { id: albumArtistId },
+        query: { id: routeId },
         serverId: server?.id,
     });
-    const { color: background, colorId } = useFastAverageColor({
-        id: albumArtistId,
+    const { background, colorId } = useFastAverageColor({
+        id: routeId,
         src: detailQuery.data?.imageUrl,
         srcLoaded: !detailQuery.isLoading,
     });
@@ -32,21 +39,16 @@ const AlbumArtistDetailRoute = () => {
     const handlePlay = () => {
         handlePlayQueueAdd?.({
             byItemType: {
-                id: [albumArtistId],
+                id: [routeId],
                 type: LibraryItem.ALBUM_ARTIST,
             },
             playType: playButtonBehavior,
         });
     };
 
-    if (!background || colorId !== albumArtistId) {
-        return <Spinner container />;
-    }
-
     return (
-        <AnimatedPage key={`album-artist-detail-${albumArtistId}`}>
+        <AnimatedPage key={`album-artist-detail-${routeId}`}>
             <NativeScrollArea
-                ref={scrollAreaRef}
                 pageHeaderProps={{
                     backgroundColor: background,
                     children: (
@@ -60,10 +62,12 @@ const AlbumArtistDetailRoute = () => {
                     offset: 200,
                     target: headerRef,
                 }}
+                ref={scrollAreaRef}
             >
                 <AlbumArtistDetailHeader
-                    ref={headerRef}
                     background={background}
+                    loading={!background || colorId !== routeId}
+                    ref={headerRef}
                 />
                 <AlbumArtistDetailContent background={background} />
             </NativeScrollArea>

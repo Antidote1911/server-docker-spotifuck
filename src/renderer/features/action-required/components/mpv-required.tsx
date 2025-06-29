@@ -1,20 +1,25 @@
-import { useEffect, useState } from 'react';
 import isElectron from 'is-electron';
-import { FileInput, Text, Button, Checkbox } from '/@/renderer/components';
-import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store';
-import { PlaybackType } from '/@/renderer/types';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const localSettings = isElectron() ? window.electron.localSettings : null;
+import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
+import { Checkbox } from '/@/shared/components/checkbox/checkbox';
+import { FileInput } from '/@/shared/components/file-input/file-input';
+import { Text } from '/@/shared/components/text/text';
+import { PlaybackType } from '/@/shared/types/types';
+
+const localSettings = isElectron() ? window.api.localSettings : null;
 
 export const MpvRequired = () => {
-    const [mpvPath, setMpvPath] = useState('');
+    const [, setMpvPath] = useState('');
     const settings = usePlaybackSettings();
     const { setSettings } = useSettingsStoreActions();
     const [disabled, setDisabled] = useState(false);
     const { t } = useTranslation();
 
-    const handleSetMpvPath = (e: File) => {
+    const handleSetMpvPath = (e: File | null) => {
+        if (!e) return;
         localSettings?.set('mpv_path', e.path);
     };
 
@@ -48,7 +53,6 @@ export const MpvRequired = () => {
             </Text>
             <FileInput
                 disabled={disabled}
-                placeholder={mpvPath}
                 onChange={handleSetMpvPath}
             />
             <Text>{t('setting.disable_mpv', { context: 'description' })}</Text>

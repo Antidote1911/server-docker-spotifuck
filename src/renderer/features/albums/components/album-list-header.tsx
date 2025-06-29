@@ -1,21 +1,26 @@
-import { useEffect, useRef, type ChangeEvent, type MutableRefObject } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { Flex, Group, Stack } from '@mantine/core';
+
 import debounce from 'lodash/debounce';
+import { type ChangeEvent, type MutableRefObject, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlbumListQuery, LibraryItem } from '/@/renderer/api/types';
-import { PageHeader, SearchInput } from '/@/renderer/components';
+
+import { PageHeader } from '/@/renderer/components/page-header/page-header';
 import { VirtualInfiniteGridRef } from '/@/renderer/components/virtual-grid';
 import { AlbumListHeaderFilters } from '/@/renderer/features/albums/components/album-list-header-filters';
 import { FilterBar, LibraryHeaderBar } from '/@/renderer/features/shared';
+import { SearchInput } from '/@/renderer/features/shared/components/search-input';
 import { useContainerQuery } from '/@/renderer/hooks';
+import { useDisplayRefresh } from '/@/renderer/hooks/use-display-refresh';
 import { AlbumListFilter, useCurrentServer, usePlayButtonBehavior } from '/@/renderer/store';
 import { titleCase } from '/@/renderer/utils';
-import { useDisplayRefresh } from '/@/renderer/hooks/use-display-refresh';
+import { Flex } from '/@/shared/components/flex/flex';
+import { Group } from '/@/shared/components/group/group';
+import { Stack } from '/@/shared/components/stack/stack';
+import { AlbumListQuery, LibraryItem } from '/@/shared/types/domain-types';
 
 interface AlbumListHeaderProps {
     genreId?: string;
-    gridRef: MutableRefObject<VirtualInfiniteGridRef | null>;
+    gridRef: MutableRefObject<null | VirtualInfiniteGridRef>;
     itemCount?: number;
     tableRef: MutableRefObject<AgGridReactType | null>;
     title?: string;
@@ -23,8 +28,8 @@ interface AlbumListHeaderProps {
 
 export const AlbumListHeader = ({
     genreId,
-    itemCount,
     gridRef,
+    itemCount,
     tableRef,
     title,
 }: AlbumListHeaderProps) => {
@@ -32,7 +37,7 @@ export const AlbumListHeader = ({
     const server = useCurrentServer();
     const cq = useContainerQuery();
     const playButtonBehavior = usePlayButtonBehavior();
-    const genreRef = useRef<string>();
+    const genreRef = useRef<string | undefined>(undefined);
     const { filter, handlePlay, refresh, search } = useDisplayRefresh<AlbumListQuery>({
         gridRef,
         itemCount,
@@ -57,10 +62,10 @@ export const AlbumListHeader = ({
 
     return (
         <Stack
+            gap={0}
             ref={cq.ref}
-            spacing={0}
         >
-            <PageHeader backgroundColor="var(--titlebar-bg)">
+            <PageHeader backgroundColor="var(--theme-colors-background)">
                 <Flex
                     justify="space-between"
                     w="100%"
@@ -82,7 +87,6 @@ export const AlbumListHeader = ({
                     <Group>
                         <SearchInput
                             defaultValue={filter.searchTerm}
-                            openedWidth={cq.isMd ? 250 : cq.isSm ? 200 : 150}
                             onChange={handleSearch}
                         />
                     </Group>

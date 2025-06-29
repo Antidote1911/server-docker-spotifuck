@@ -1,15 +1,16 @@
 import { QueryClient } from '@tanstack/react-query';
+
 import { api } from '/@/renderer/api';
 import { queryKeys } from '/@/renderer/api/query-keys';
 import {
     PlaylistSongListQuery,
+    ServerListItem,
     SongDetailQuery,
     SongListQuery,
     SongListResponse,
     SongListSort,
     SortOrder,
-    ServerListItem,
-} from '/@/renderer/api/types';
+} from '/@/shared/types/domain-types';
 
 export const getPlaylistSongsById = async (args: {
     id: string;
@@ -17,7 +18,7 @@ export const getPlaylistSongsById = async (args: {
     queryClient: QueryClient;
     server: ServerListItem;
 }) => {
-    const { id, queryClient, server, query } = args;
+    const { id, query, queryClient, server } = args;
 
     const queryFilter: PlaylistSongListQuery = {
         id,
@@ -55,7 +56,7 @@ export const getAlbumSongsById = async (args: {
     queryClient: QueryClient;
     server: ServerListItem;
 }) => {
-    const { id, queryClient, server, query } = args;
+    const { id, query, queryClient, server } = args;
 
     const queryFilter: SongListQuery = {
         albumIds: id,
@@ -91,9 +92,9 @@ export const getGenreSongsById = async (args: {
     orderByIds?: boolean;
     query?: Partial<SongListQuery>;
     queryClient: QueryClient;
-    server: ServerListItem | null;
+    server: null | ServerListItem;
 }) => {
-    const { id, queryClient, server, query } = args;
+    const { id, query, queryClient, server } = args;
 
     const data: SongListResponse = {
         items: [],
@@ -143,11 +144,48 @@ export const getAlbumArtistSongsById = async (args: {
     queryClient: QueryClient;
     server: ServerListItem;
 }) => {
-    const { id, queryClient, server, query } = args;
+    const { id, query, queryClient, server } = args;
 
     const queryFilter: SongListQuery = {
-        artistIds: id || [],
+        albumArtistIds: id || [],
         sortBy: SongListSort.ALBUM_ARTIST,
+        sortOrder: SortOrder.ASC,
+        startIndex: 0,
+        ...query,
+    };
+
+    const queryKey = queryKeys.songs.list(server?.id, queryFilter);
+
+    const res = await queryClient.fetchQuery(
+        queryKey,
+        async ({ signal }) =>
+            api.controller.getSongList({
+                apiClientProps: {
+                    server,
+                    signal,
+                },
+                query: queryFilter,
+            }),
+        {
+            cacheTime: 1000 * 60,
+            staleTime: 1000 * 60,
+        },
+    );
+
+    return res;
+};
+
+export const getArtistSongsById = async (args: {
+    id: string[];
+    query?: Partial<SongListQuery>;
+    queryClient: QueryClient;
+    server: ServerListItem;
+}) => {
+    const { id, query, queryClient, server } = args;
+
+    const queryFilter: SongListQuery = {
+        artistIds: id,
+        sortBy: SongListSort.ALBUM,
         sortOrder: SortOrder.ASC,
         startIndex: 0,
         ...query,
@@ -179,7 +217,7 @@ export const getSongsByQuery = async (args: {
     queryClient: QueryClient;
     server: ServerListItem;
 }) => {
-    const { queryClient, server, query } = args;
+    const { query, queryClient, server } = args;
 
     const queryFilter: SongListQuery = {
         sortBy: SongListSort.ALBUM,

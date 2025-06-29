@@ -1,48 +1,60 @@
 import { forwardRef, Fragment, Ref } from 'react';
-import { Group, Rating, Stack } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
-import { LibraryItem, ServerType } from '/@/renderer/api/types';
-import { Text } from '/@/renderer/components';
+
 import { useAlbumArtistDetail } from '/@/renderer/features/artists/queries/album-artist-detail-query';
 import { LibraryHeader, useSetRating } from '/@/renderer/features/shared';
 import { AppRoute } from '/@/renderer/router/routes';
+import { useCurrentServer } from '/@/renderer/store';
 import { formatDurationString } from '/@/renderer/utils';
-import { useCurrentServer } from '../../../store/auth.store';
+import { Group } from '/@/shared/components/group/group';
+import { Rating } from '/@/shared/components/rating/rating';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Text } from '/@/shared/components/text/text';
+import { LibraryItem, ServerType } from '/@/shared/types/domain-types';
 
 interface AlbumArtistDetailHeaderProps {
-    background: string;
+    background?: string;
+    loading: boolean;
 }
 
 export const AlbumArtistDetailHeader = forwardRef(
-    ({ background }: AlbumArtistDetailHeaderProps, ref: Ref<HTMLDivElement>) => {
-        const { albumArtistId } = useParams() as { albumArtistId: string };
+    ({ background, loading }: AlbumArtistDetailHeaderProps, ref: Ref<HTMLDivElement>) => {
+        const { albumArtistId, artistId } = useParams() as {
+            albumArtistId?: string;
+            artistId?: string;
+        };
+        const routeId = (artistId || albumArtistId) as string;
         const server = useCurrentServer();
         const { t } = useTranslation();
         const detailQuery = useAlbumArtistDetail({
-            query: { id: albumArtistId },
+            query: { id: routeId },
             serverId: server?.id,
         });
 
+        const albumCount = detailQuery?.data?.albumCount;
+        const songCount = detailQuery?.data?.songCount;
+        const duration = detailQuery?.data?.duration;
+        const durationEnabled = duration !== null && duration !== undefined;
+
         const metadataItems = [
             {
-                enabled: detailQuery?.data?.albumCount,
+                enabled: albumCount !== null && albumCount !== undefined,
                 id: 'albumCount',
                 secondary: false,
-                value: t('entity.albumWithCount', { count: detailQuery?.data?.albumCount || 0 }),
+                value: t('entity.albumWithCount', { count: albumCount || 0 }),
             },
             {
-                enabled: detailQuery?.data?.songCount,
+                enabled: songCount !== null && songCount !== undefined,
                 id: 'songCount',
                 secondary: false,
-                value: t('entity.trackWithCount', { count: detailQuery?.data?.songCount || 0 }),
+                value: t('entity.trackWithCount', { count: songCount || 0 }),
             },
             {
-                enabled: detailQuery.data?.duration,
+                enabled: durationEnabled,
                 id: 'duration',
                 secondary: true,
-                value:
-                    detailQuery?.data?.duration && formatDurationString(detailQuery.data.duration),
+                value: durationEnabled && formatDurationString(duration),
             },
         ];
 
@@ -64,10 +76,11 @@ export const AlbumArtistDetailHeader = forwardRef(
 
         return (
             <LibraryHeader
-                ref={ref}
                 background={background}
                 imageUrl={detailQuery?.data?.imageUrl}
                 item={{ route: AppRoute.LIBRARY_ALBUM_ARTISTS, type: LibraryItem.ALBUM_ARTIST }}
+                loading={loading}
+                ref={ref}
                 title={detailQuery?.data?.name || ''}
             >
                 <Stack>
@@ -76,19 +89,19 @@ export const AlbumArtistDetailHeader = forwardRef(
                             .filter((i) => i.enabled)
                             .map((item, index) => (
                                 <Fragment key={`item-${item.id}-${index}`}>
-                                    {index > 0 && <Text $noSelect>•</Text>}
-                                    <Text $secondary={item.secondary}>{item.value}</Text>
+                                    {index > 0 && <Text isNoSelect>•</Text>}
+                                    <Text isMuted={item.secondary}>{item.value}</Text>
                                 </Fragment>
                             ))}
                         {showRating && (
                             <>
-                                <Text $noSelect>•</Text>
+                                <Text isNoSelect>•</Text>
                                 <Rating
+                                    onChange={handleUpdateRating}
                                     readOnly={
                                         detailQuery?.isFetching || updateRatingMutation.isLoading
                                     }
                                     value={detailQuery?.data?.userRating || 0}
-                                    onChange={handleUpdateRating}
                                 />
                             </>
                         )}

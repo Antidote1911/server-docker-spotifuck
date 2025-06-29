@@ -1,7 +1,13 @@
-import { NumberInput, Switch, TextInput } from '/@/renderer/components';
-import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
-import { SettingOption, SettingsSection } from '../settings-section';
 import { useTranslation } from 'react-i18next';
+
+import {
+    SettingOption,
+    SettingsSection,
+} from '/@/renderer/features/settings/components/settings-section';
+import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Switch } from '/@/shared/components/switch/switch';
+import { TextInput } from '/@/shared/components/text-input/text-input';
 
 export const TranscodeSettings = () => {
     const { t } = useTranslation();
@@ -36,7 +42,6 @@ export const TranscodeSettings = () => {
                     aria-label="Transcode bitrate"
                     defaultValue={transcode.bitrate}
                     min={0}
-                    w={100}
                     onBlur={(e) => {
                         setTranscodingConfig({
                             ...transcode,
@@ -45,6 +50,7 @@ export const TranscodeSettings = () => {
                                 : undefined,
                         });
                     }}
+                    w={100}
                 />
             ),
             description: t('setting.transcodeBitrate', {
@@ -60,14 +66,14 @@ export const TranscodeSettings = () => {
                 <TextInput
                     aria-label="transcoding format"
                     defaultValue={transcode.format}
-                    placeholder="mp3, opus"
-                    width={100}
                     onBlur={(e) => {
                         setTranscodingConfig({
                             ...transcode,
                             format: e.currentTarget.value || undefined,
                         });
                     }}
+                    placeholder="mp3, opus"
+                    width={100}
                 />
             ),
             description: t('setting.transcodeFormat', {

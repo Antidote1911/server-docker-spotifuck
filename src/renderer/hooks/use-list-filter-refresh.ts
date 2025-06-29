@@ -1,70 +1,70 @@
-import { MutableRefObject, useCallback, useMemo } from 'react';
-import { IDatasource } from '@ag-grid-community/core';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
+
+import { IDatasource } from '@ag-grid-community/core';
 import { QueryKey, useQueryClient } from '@tanstack/react-query';
+import orderBy from 'lodash/orderBy';
+import { MutableRefObject, useCallback, useMemo } from 'react';
+
 import { api } from '/@/renderer/api';
 import { queryKeys } from '/@/renderer/api/query-keys';
-import { BasePaginatedResponse, LibraryItem, ServerListItem } from '/@/renderer/api/types';
 import { VirtualInfiniteGridRef } from '/@/renderer/components/virtual-grid';
-import orderBy from 'lodash/orderBy';
+import { BasePaginatedResponse, LibraryItem, ServerListItem } from '/@/shared/types/domain-types';
 
 export interface UseHandleListFilterChangeProps {
     isClientSideSort?: boolean;
     itemCount?: number;
     itemType: LibraryItem;
-    server: ServerListItem | null;
+    server: null | ServerListItem;
 }
 
 const BLOCK_SIZE = 500;
 
 export const useListFilterRefresh = ({
-    server,
+    isClientSideSort,
     itemCount,
     itemType,
-    isClientSideSort,
+    server,
 }: UseHandleListFilterChangeProps) => {
     const queryClient = useQueryClient();
 
     const queryKeyFn: ((serverId: string, query: Record<any, any>) => QueryKey) | null =
         useMemo(() => {
-            if (itemType === LibraryItem.ALBUM) {
-                return queryKeys.albums.list;
+            switch (itemType) {
+                case LibraryItem.ALBUM:
+                    return queryKeys.albums.list;
+                case LibraryItem.ALBUM_ARTIST:
+                    return queryKeys.albumArtists.list;
+                case LibraryItem.ARTIST:
+                    return queryKeys.artists.list;
+                case LibraryItem.GENRE:
+                    return queryKeys.genres.list;
+                case LibraryItem.PLAYLIST:
+                    return queryKeys.playlists.list;
+                case LibraryItem.SONG:
+                    return queryKeys.songs.list;
+                default:
+                    return null;
             }
-            if (itemType === LibraryItem.ALBUM_ARTIST) {
-                return queryKeys.albumArtists.list;
-            }
-            if (itemType === LibraryItem.PLAYLIST) {
-                return queryKeys.playlists.list;
-            }
-            if (itemType === LibraryItem.SONG) {
-                return queryKeys.songs.list;
-            }
-            if (itemType === LibraryItem.GENRE) {
-                return queryKeys.genres.list;
-            }
-
-            return null;
         }, [itemType]);
 
     const queryFn: ((args: any) => Promise<BasePaginatedResponse<any> | null | undefined>) | null =
         useMemo(() => {
-            if (itemType === LibraryItem.ALBUM) {
-                return api.controller.getAlbumList;
+            switch (itemType) {
+                case LibraryItem.ALBUM:
+                    return api.controller.getAlbumList;
+                case LibraryItem.ALBUM_ARTIST:
+                    return api.controller.getAlbumArtistList;
+                case LibraryItem.ARTIST:
+                    return api.controller.getArtistList;
+                case LibraryItem.GENRE:
+                    return api.controller.getGenreList;
+                case LibraryItem.PLAYLIST:
+                    return api.controller.getPlaylistList;
+                case LibraryItem.SONG:
+                    return api.controller.getSongList;
+                default:
+                    return null;
             }
-            if (itemType === LibraryItem.ALBUM_ARTIST) {
-                return api.controller.getAlbumArtistList;
-            }
-            if (itemType === LibraryItem.PLAYLIST) {
-                return api.controller.getPlaylistList;
-            }
-            if (itemType === LibraryItem.SONG) {
-                return api.controller.getSongList;
-            }
-            if (itemType === LibraryItem.GENRE) {
-                return api.controller.getGenreList;
-            }
-
-            return null;
         }, [itemType]);
 
     const handleRefreshTable = useCallback(
@@ -136,7 +136,7 @@ export const useListFilterRefresh = ({
     );
 
     const handleRefreshGrid = useCallback(
-        async (gridRef: MutableRefObject<VirtualInfiniteGridRef | null>, filter: any) => {
+        async (gridRef: MutableRefObject<null | VirtualInfiniteGridRef>, filter: any) => {
             if (!gridRef || !queryKeyFn || !queryFn) {
                 return;
             }

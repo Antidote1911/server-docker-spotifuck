@@ -1,13 +1,16 @@
-import { useTranslation } from 'react-i18next';
-import { SettingsOptions } from '/@/renderer/features/settings/components/settings-option';
 import { useState } from 'react';
-import { Button, Checkbox } from '/@/renderer/components';
-import { Divider, Stack } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
+
 import {
     CONFIGURABLE_CONTEXT_MENU_ITEMS,
     CONTEXT_MENU_ITEM_MAPPING,
 } from '/@/renderer/features/context-menu';
+import { SettingsOptions } from '/@/renderer/features/settings/components/settings-option';
 import { useSettingsStore, useSettingsStoreActions } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
+import { Checkbox } from '/@/shared/components/checkbox/checkbox';
+import { Divider } from '/@/shared/components/divider/divider';
+import { Stack } from '/@/shared/components/stack/stack';
 
 export const ContextMenuSettings = () => {
     const disabledItems = useSettingsStore((state) => state.general.disabledContextMenu);
@@ -20,9 +23,9 @@ export const ContextMenuSettings = () => {
             <SettingsOptions
                 control={
                     <Button
-                        compact
-                        variant="filled"
                         onClick={() => setOpen(!open)}
+                        size="compact-md"
+                        variant="filled"
                     >
                         {t(open ? 'common.close' : 'common.edit', { postProcess: 'titleCase' })}
                     </Button>
@@ -39,8 +42,8 @@ export const ContextMenuSettings = () => {
                 <Stack>
                     {CONFIGURABLE_CONTEXT_MENU_ITEMS.map((item) => (
                         <Checkbox
-                            key={item}
                             checked={!disabledItems[item]}
+                            key={item}
                             label={t(
                                 `page.contextMenu.${CONTEXT_MENU_ITEM_MAPPING[item] || item}`,
                                 {

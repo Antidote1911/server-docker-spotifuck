@@ -1,23 +1,24 @@
-import { UseQueryResult, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-    LyricsQuery,
-    QueueSong,
-    SynchronizedLyricsArray,
-    InternetProviderLyricResponse,
-    FullLyricsMetadata,
-    LyricGetQuery,
-    StructuredLyric,
-    ServerType,
-} from '/@/renderer/api/types';
+import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import isElectron from 'is-electron';
+
+import { api } from '/@/renderer/api';
+import { queryKeys } from '/@/renderer/api/query-keys';
 import { QueryHookArgs } from '/@/renderer/lib/react-query';
 import { getServerById, useLyricsSettings } from '/@/renderer/store';
-import { queryKeys } from '/@/renderer/api/query-keys';
-import { api } from '/@/renderer/api';
-import isElectron from 'is-electron';
-import { hasFeature } from '/@/renderer/api/utils';
-import { ServerFeature } from '/@/renderer/api/features-types';
+import { hasFeature } from '/@/shared/api/utils';
+import {
+    FullLyricsMetadata,
+    InternetProviderLyricResponse,
+    LyricGetQuery,
+    LyricsQuery,
+    QueueSong,
+    ServerType,
+    StructuredLyric,
+    SynchronizedLyricsArray,
+} from '/@/shared/types/domain-types';
+import { ServerFeature } from '/@/shared/types/features-types';
 
-const lyricsIpc = isElectron() ? window.electron.lyrics : null;
+const lyricsIpc = isElectron() ? window.api.lyrics : null;
 
 // Match LRC lyrics format by https://github.com/ustbhuangyi/lyric-parser
 // [mm:ss.SSS] text
@@ -62,7 +63,7 @@ const formatLyrics = (lyrics: string) => {
 
 export const useServerLyrics = (
     args: QueryHookArgs<LyricsQuery>,
-): UseQueryResult<string | null> => {
+): UseQueryResult<null | string> => {
     const { query, serverId } = args;
     const server = getServerById(serverId);
 
@@ -85,16 +86,19 @@ export const useSongLyricsBySong = (
     song: QueueSong | undefined,
 ): UseQueryResult<FullLyricsMetadata | StructuredLyric[]> => {
     const { query } = args;
-    const { fetch } = useLyricsSettings();
+    const { fetch, preferLocalLyrics } = useLyricsSettings();
     const server = getServerById(song?.serverId);
 
     return useQuery({
         cacheTime: Infinity,
         enabled: !!song && !!server,
         onError: () => {},
-        queryFn: async ({ signal }): Promise<FullLyricsMetadata | StructuredLyric[] | null> => {
+        queryFn: async ({ signal }): Promise<FullLyricsMetadata | null | StructuredLyric[]> => {
             if (!server) throw new Error('Server not found');
             if (!song) return null;
+
+            let localLyrics: FullLyricsMetadata | null | StructuredLyric[] = null;
+            let remoteLyrics: FullLyricsMetadata | null | StructuredLyric[] = null;
 
             if (hasFeature(server, ServerFeature.LYRICS_MULTIPLE_STRUCTURED)) {
                 const subsonicLyrics = await api.controller
@@ -105,7 +109,7 @@ export const useSongLyricsBySong = (
                     .catch(console.error);
 
                 if (subsonicLyrics?.length) {
-                    return subsonicLyrics;
+                    localLyrics = subsonicLyrics;
                 }
             } else if (hasFeature(server, ServerFeature.LYRICS_SINGLE_STRUCTURED)) {
                 const jfLyrics = await api.controller
@@ -116,7 +120,7 @@ export const useSongLyricsBySong = (
                     .catch((err) => console.log(err));
 
                 if (jfLyrics) {
-                    return {
+                    localLyrics = {
                         artist: song.artists?.[0]?.name,
                         lyrics: jfLyrics,
                         name: song.name,
@@ -125,7 +129,7 @@ export const useSongLyricsBySong = (
                     };
                 }
             } else if (song.lyrics) {
-                return {
+                localLyrics = {
                     artist: song.artists?.[0]?.name,
                     lyrics: formatLyrics(song.lyrics),
                     name: song.name,
@@ -134,17 +138,29 @@ export const useSongLyricsBySong = (
                 };
             }
 
+            if (preferLocalLyrics && localLyrics) {
+                return localLyrics;
+            }
+
             if (fetch) {
                 const remoteLyricsResult: InternetProviderLyricResponse | null =
                     await lyricsIpc?.getRemoteLyricsBySong(song);
 
                 if (remoteLyricsResult) {
-                    return {
+                    remoteLyrics = {
                         ...remoteLyricsResult,
                         lyrics: formatLyrics(remoteLyricsResult.lyrics),
                         remote: true,
                     };
                 }
+            }
+
+            if (remoteLyrics) {
+                return remoteLyrics;
+            }
+
+            if (localLyrics) {
+                return localLyrics;
             }
 
             return null;
@@ -156,7 +172,7 @@ export const useSongLyricsBySong = (
 
 export const useSongLyricsByRemoteId = (
     args: QueryHookArgs<Partial<LyricGetQuery>>,
-): UseQueryResult<string | null> => {
+): UseQueryResult<null | string> => {
     const queryClient = useQueryClient();
     const { query, serverId } = args;
 
@@ -182,9 +198,7 @@ export const useSongLyricsByRemoteId = (
             );
         },
         queryFn: async () => {
-            const remoteLyricsResult = await lyricsIpc?.getRemoteLyricsByRemoteId(
-                query as LyricGetQuery,
-            );
+            const remoteLyricsResult = await lyricsIpc?.getRemoteLyricsByRemoteId(query as any);
 
             if (remoteLyricsResult) {
                 return formatLyrics(remoteLyricsResult);

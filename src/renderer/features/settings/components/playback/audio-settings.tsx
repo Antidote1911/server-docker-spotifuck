@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
-import { SelectItem } from '@mantine/core';
 import isElectron from 'is-electron';
-import { Select, Slider, Switch, toast } from '/@/renderer/components';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import {
-    SettingsSection,
     SettingOption,
+    SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
 import { useCurrentStatus, usePlayerStore } from '/@/renderer/store';
 import { usePlaybackSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
-import { PlaybackType, PlayerStatus, PlaybackStyle, CrossfadeStyle } from '/@/renderer/types';
-import { useTranslation } from 'react-i18next';
 import { setQueue } from '/@/renderer/utils/set-transcoded-queue-data';
+import { Select } from '/@/shared/components/select/select';
+import { Slider } from '/@/shared/components/slider/slider';
+import { Switch } from '/@/shared/components/switch/switch';
+import { toast } from '/@/shared/components/toast/toast';
+import { CrossfadeStyle, PlaybackStyle, PlaybackType, PlayerStatus } from '/@/shared/types/types';
 
 const getAudioDevice = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -23,7 +26,7 @@ export const AudioSettings = ({ hasFancyAudio }: { hasFancyAudio: boolean }) => 
     const { setSettings } = useSettingsStoreActions();
     const status = useCurrentStatus();
 
-    const [audioDevices, setAudioDevices] = useState<SelectItem[]>([]);
+    const [audioDevices, setAudioDevices] = useState<{ label: string; value: string }[]>([]);
 
     useEffect(() => {
         const getAudioDevices = () => {
@@ -163,10 +166,10 @@ export const AudioSettings = ({ hasFancyAudio }: { hasFancyAudio: boolean }) => 
                     }
                     max={15}
                     min={0}
-                    w={100}
                     onChangeEnd={(e) =>
                         setSettings({ playback: { ...settings, crossfadeDuration: e } })
                     }
+                    w={100}
                 />
             ),
             description: t('setting.crossfadeDuration', {
@@ -202,13 +205,13 @@ export const AudioSettings = ({ hasFancyAudio }: { hasFancyAudio: boolean }) => 
                         settings.style !== PlaybackStyle.CROSSFADE ||
                         status === PlayerStatus.PLAYING
                     }
-                    width={200}
                     onChange={(e) => {
                         if (!e) return;
                         setSettings({
                             playback: { ...settings, crossfadeStyle: e as CrossfadeStyle },
                         });
                     }}
+                    width={200}
                 />
             ),
             description: t('setting.crossfadeStyle', {

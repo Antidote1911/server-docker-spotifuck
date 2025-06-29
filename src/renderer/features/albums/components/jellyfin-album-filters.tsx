@@ -1,19 +1,26 @@
-import { ChangeEvent, useMemo, useState } from 'react';
-import { Divider, Group, Stack } from '@mantine/core';
 import debounce from 'lodash/debounce';
+import { ChangeEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useListFilterByKey } from '../../../store/list.store';
+
+import { MultiSelectWithInvalidData } from '/@/renderer/components/select-with-invalid-data';
+import { useAlbumArtistList } from '/@/renderer/features/artists/queries/album-artist-list-query';
+import { useGenreList } from '/@/renderer/features/genres';
+import { useTagList } from '/@/renderer/features/tag/queries/use-tag-list';
+import { AlbumListFilter, useListFilterByKey, useListStoreActions } from '/@/renderer/store';
+import { Divider } from '/@/shared/components/divider/divider';
+import { Group } from '/@/shared/components/group/group';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { SpinnerIcon } from '/@/shared/components/spinner/spinner';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Switch } from '/@/shared/components/switch/switch';
+import { Text } from '/@/shared/components/text/text';
 import {
     AlbumArtistListSort,
     AlbumListQuery,
     GenreListSort,
     LibraryItem,
     SortOrder,
-} from '/@/renderer/api/types';
-import { MultiSelect, NumberInput, SpinnerIcon, Switch, Text } from '/@/renderer/components';
-import { useAlbumArtistList } from '/@/renderer/features/artists/queries/album-artist-list-query';
-import { useGenreList } from '/@/renderer/features/genres';
-import { AlbumListFilter, useListStoreActions } from '/@/renderer/store';
+} from '/@/shared/types/domain-types';
 
 interface JellyfinAlbumFiltersProps {
     customFilters?: Partial<AlbumListFilter>;
@@ -52,6 +59,18 @@ export const JellyfinAlbumFilters = ({
             value: genre.id,
         }));
     }, [genreListQuery.data]);
+
+    const tagsQuery = useTagList({
+        query: {
+            folder: filter?.musicFolderId,
+            type: LibraryItem.ALBUM,
+        },
+        serverId,
+    });
+
+    const selectedTags = useMemo(() => {
+        return filter?._custom?.jellyfin?.Tags?.split('|');
+    }, [filter?._custom?.jellyfin?.Tags]);
 
     const toggleFilters = [
         {
@@ -137,7 +156,7 @@ export const JellyfinAlbumFilters = ({
         }));
     }, [albumArtistListQuery?.data?.items]);
 
-    const handleAlbumArtistFilter = (e: string[] | null) => {
+    const handleAlbumArtistFilter = (e: null | string[]) => {
         const updatedFilters = setFilter({
             customFilters,
             data: {
@@ -150,18 +169,36 @@ export const JellyfinAlbumFilters = ({
         onFilterChange(updatedFilters);
     };
 
+    const handleTagFilter = debounce((e: string[] | undefined) => {
+        const updatedFilters = setFilter({
+            customFilters,
+            data: {
+                _custom: {
+                    ...filter?._custom,
+                    jellyfin: {
+                        ...filter?._custom?.jellyfin,
+                        Tags: e?.join('|') || undefined,
+                    },
+                },
+            },
+            itemType: LibraryItem.SONG,
+            key: pageKey,
+        }) as AlbumListFilter;
+        onFilterChange(updatedFilters);
+    }, 250);
+
     return (
         <Stack p="0.8rem">
             {toggleFilters.map((filter) => (
                 <Group
+                    justify="space-between"
                     key={`nd-filter-${filter.label}`}
-                    position="apart"
                 >
                     <Text>{filter.label}</Text>
                     <Switch
                         checked={filter?.value || false}
-                        size="xs"
                         onChange={filter.onChange}
+                        size="xs"
                     />
                 </Group>
             ))}
@@ -173,8 +210,8 @@ export const JellyfinAlbumFilters = ({
                     label={t('filter.fromYear', { postProcess: 'sentenceCase' })}
                     max={2300}
                     min={1700}
-                    required={!!filter?.maxYear}
                     onChange={(e) => handleMinYearFilter(e)}
+                    required={!!filter?.maxYear}
                 />
                 <NumberInput
                     defaultValue={filter?.maxYear}
@@ -182,37 +219,50 @@ export const JellyfinAlbumFilters = ({
                     label={t('filter.toYear', { postProcess: 'sentenceCase' })}
                     max={2300}
                     min={1700}
-                    required={!!filter?.minYear}
                     onChange={(e) => handleMaxYearFilter(e)}
+                    required={!!filter?.minYear}
                 />
             </Group>
             <Group grow>
-                <MultiSelect
+                <MultiSelectWithInvalidData
                     clearable
-                    searchable
                     data={genreList}
                     defaultValue={filter.genres}
                     label={t('entity.genre', { count: 2, postProcess: 'sentenceCase' })}
                     onChange={handleGenresFilter}
+                    searchable
                 />
             </Group>
 
             <Group grow>
-                <MultiSelect
+                <MultiSelectWithInvalidData
                     clearable
-                    searchable
                     data={selectableAlbumArtists}
                     defaultValue={filter?._custom?.jellyfin?.AlbumArtistIds?.split(',')}
                     disabled={disableArtistFilter}
                     label={t('entity.artist', { count: 2, postProcess: 'sentenceCase' })}
                     limit={300}
-                    placeholder="Type to search for an artist"
-                    rightSection={albumArtistListQuery.isFetching ? <SpinnerIcon /> : undefined}
-                    searchValue={albumArtistSearchTerm}
                     onChange={handleAlbumArtistFilter}
                     onSearchChange={setAlbumArtistSearchTerm}
+                    placeholder="Type to search for an artist"
+                    rightSection={albumArtistListQuery.isFetching ? <SpinnerIcon /> : undefined}
+                    searchable
+                    searchValue={albumArtistSearchTerm}
                 />
             </Group>
+            {tagsQuery.data?.boolTags?.length && (
+                <Group grow>
+                    <MultiSelectWithInvalidData
+                        clearable
+                        data={tagsQuery.data.boolTags}
+                        defaultValue={selectedTags}
+                        label={t('common.tags', { postProcess: 'sentenceCase' })}
+                        onChange={handleTagFilter}
+                        searchable
+                        width={250}
+                    />
+                </Group>
+            )}
         </Stack>
     );
 };

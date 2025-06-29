@@ -1,29 +1,20 @@
-import { MutableRefObject, useCallback, useMemo } from 'react';
-import { RowDoubleClickedEvent, RowHeightParams, RowNode } from '@ag-grid-community/core';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { Box, Group, Stack } from '@mantine/core';
+
+import { RowDoubleClickedEvent, RowHeightParams, RowNode } from '@ag-grid-community/core';
 import { useSetState } from '@mantine/hooks';
+import { MutableRefObject, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaLastfmSquare } from 'react-icons/fa';
-import { RiHeartFill, RiHeartLine, RiMoreFill, RiSettings2Fill } from 'react-icons/ri';
-import { SiMusicbrainz } from 'react-icons/si';
 import { generatePath, useParams } from 'react-router';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
+
+import styles from './album-detail-content.module.css';
+
 import { queryKeys } from '/@/renderer/api/query-keys';
+import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel/grid-carousel';
 import {
-    AlbumListQuery,
-    AlbumListSort,
-    LibraryItem,
-    QueueSong,
-    SortOrder,
-} from '/@/renderer/api/types';
-import { Button, Popover, Spoiler } from '/@/renderer/components';
-import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel';
-import {
+    getColumnDefs,
     TableConfigDropdown,
     VirtualTable,
-    getColumnDefs,
 } from '/@/renderer/components/virtual-table';
 import { FullWidthDiscCell } from '/@/renderer/components/virtual-table/cells/full-width-disc-cell';
 import { useCurrentSongRowStyles } from '/@/renderer/components/virtual-table/hooks/use-current-song-row-styles';
@@ -41,41 +32,42 @@ import { usePlayQueueAdd } from '/@/renderer/features/player';
 import { PlayButton, useCreateFavorite, useDeleteFavorite } from '/@/renderer/features/shared';
 import { LibraryBackgroundOverlay } from '/@/renderer/features/shared/components/library-background-overlay';
 import { useAppFocus, useContainerQuery } from '/@/renderer/hooks';
+import { useGenreRoute } from '/@/renderer/hooks/use-genre-route';
 import { AppRoute } from '/@/renderer/router/routes';
 import { useCurrentServer, useCurrentSong, useCurrentStatus } from '/@/renderer/store';
 import {
+    PersistedTableColumn,
     useGeneralSettings,
     usePlayButtonBehavior,
     useSettingsStoreActions,
     useTableSettings,
 } from '/@/renderer/store/settings.store';
-import { Play } from '/@/renderer/types';
 import { replaceURLWithHTMLLinks } from '/@/renderer/utils/linkify';
-import { useGenreRoute } from '/@/renderer/hooks/use-genre-route';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Button } from '/@/shared/components/button/button';
+import { Group } from '/@/shared/components/group/group';
+import { Popover } from '/@/shared/components/popover/popover';
+import { Spoiler } from '/@/shared/components/spoiler/spoiler';
+import { Stack } from '/@/shared/components/stack/stack';
+import {
+    AlbumListQuery,
+    AlbumListSort,
+    LibraryItem,
+    QueueSong,
+    SortOrder,
+} from '/@/shared/types/domain-types';
+import { Play } from '/@/shared/types/types';
 
 const isFullWidthRow = (node: RowNode) => {
     return node.id?.startsWith('disc-');
 };
-
-const ContentContainer = styled.div`
-    position: relative;
-    z-index: 0;
-`;
-
-const DetailContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    padding: 1rem 2rem 5rem;
-    overflow: hidden;
-`;
 
 interface AlbumDetailContentProps {
     background?: string;
     tableRef: MutableRefObject<AgGridReactType | null>;
 }
 
-export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentProps) => {
+export const AlbumDetailContent = ({ background, tableRef }: AlbumDetailContentProps) => {
     const { t } = useTranslation();
     const { albumId } = useParams() as { albumId: string };
     const server = useCurrentServer();
@@ -87,7 +79,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
     const status = useCurrentStatus();
     const isFocused = useAppFocus();
     const currentSong = useCurrentSong();
-    const { externalLinks } = useGeneralSettings();
+    const { externalLinks, lastFM, musicBrainz } = useGeneralSettings();
     const genreRoute = useGenreRoute();
 
     const columnDefs = useMemo(
@@ -112,7 +104,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
         }
 
         let discNumber = -1;
-        let discSubtitle: string | null = null;
+        let discSubtitle: null | string = null;
 
         const rowData: (QueueSong | { id: string; name: string })[] = [];
         const discTranslated = t('common.disc', { postProcess: 'upperCase' });
@@ -229,10 +221,10 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                 (a) => a.id !== detailQuery?.data?.id,
             ).length,
             loading: relatedAlbumGenresQuery?.isLoading || relatedAlbumGenresQuery.isFetching,
-            title: t('page.albumDetail.moreFromGeneric', {
-                item: detailQuery?.data?.genres?.[0]?.name,
+            title: `${t('page.albumDetail.moreFromGeneric', {
+                item: '',
                 postProcess: 'sentenceCase',
-            }),
+            })} ${detailQuery?.data?.genres?.[0]?.name}`,
             uniqueId: 'relatedGenres',
         },
     ];
@@ -303,7 +295,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
         if (!columnsOrder) return;
 
         const columnsInSettings = tableConfig.columns;
-        const updatedColumns = [];
+        const updatedColumns: PersistedTableColumn[] = [];
         for (const column of columnsOrder) {
             const columnInSettings = columnsInSettings.find(
                 (c) => c.column === column.getColDef().colId,
@@ -327,72 +319,73 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
     const mbzId = detailQuery?.data?.mbzId;
 
     return (
-        <ContentContainer>
-            <LibraryBackgroundOverlay $backgroundColor={background} />
-            <DetailContainer>
-                <Box component="section">
+        <div
+            className={styles.contentContainer}
+            ref={cq.ref}
+        >
+            <LibraryBackgroundOverlay backgroundColor={background} />
+            <div className={styles.detailContainer}>
+                <section>
                     <Group
-                        position="apart"
-                        spacing="sm"
+                        gap="sm"
+                        justify="space-between"
                     >
                         <Group>
                             <PlayButton onClick={() => handlePlay(playButtonBehavior)} />
-                            <Button
-                                compact
-                                loading={
-                                    createFavoriteMutation.isLoading ||
-                                    deleteFavoriteMutation.isLoading
-                                }
-                                variant="subtle"
-                                onClick={handleFavorite}
-                            >
-                                {detailQuery?.data?.userFavorite ? (
-                                    <RiHeartFill
-                                        color="red"
-                                        size={20}
-                                    />
-                                ) : (
-                                    <RiHeartLine size={20} />
-                                )}
-                            </Button>
-                            <Button
-                                compact
-                                variant="subtle"
-                                onClick={(e) => {
-                                    if (!detailQuery?.data) return;
-                                    handleGeneralContextMenu(e, [detailQuery.data!]);
-                                }}
-                            >
-                                <RiMoreFill size={20} />
-                            </Button>
+                            <Group gap="xs">
+                                <ActionIcon
+                                    icon="favorite"
+                                    iconProps={{
+                                        fill: detailQuery?.data?.userFavorite
+                                            ? 'primary'
+                                            : undefined,
+                                    }}
+                                    loading={
+                                        createFavoriteMutation.isLoading ||
+                                        deleteFavoriteMutation.isLoading
+                                    }
+                                    onClick={handleFavorite}
+                                    size="lg"
+                                    variant="transparent"
+                                />
+                                <ActionIcon
+                                    icon="ellipsisHorizontal"
+                                    onClick={(e) => {
+                                        if (!detailQuery?.data) return;
+                                        handleGeneralContextMenu(e, [detailQuery.data!]);
+                                    }}
+                                    size="lg"
+                                    variant="transparent"
+                                />
+                            </Group>
                         </Group>
-
                         <Popover position="bottom-end">
                             <Popover.Target>
-                                <Button
-                                    compact
-                                    size="md"
-                                    variant="subtle"
-                                >
-                                    <RiSettings2Fill size={20} />
-                                </Button>
+                                <ActionIcon
+                                    icon="settings"
+                                    onClick={(e) => {
+                                        if (!detailQuery?.data) return;
+                                        handleGeneralContextMenu(e, [detailQuery.data!]);
+                                    }}
+                                    size="lg"
+                                    variant="transparent"
+                                />
                             </Popover.Target>
                             <Popover.Dropdown>
                                 <TableConfigDropdown type="albumDetail" />
                             </Popover.Dropdown>
                         </Popover>
                     </Group>
-                </Box>
+                </section>
                 {showGenres && (
-                    <Box component="section">
-                        <Group spacing="sm">
+                    <section>
+                        <Group gap="sm">
                             {detailQuery?.data?.genres?.map((genre) => (
                                 <Button
-                                    key={`genre-${genre.id}`}
-                                    compact
                                     component={Link}
-                                    radius={0}
-                                    size="md"
+                                    key={`genre-${genre.id}`}
+                                    radius="md"
+                                    size="compact-md"
                                     to={generatePath(genreRoute, {
                                         genreId: genre.id,
                                     })}
@@ -402,33 +395,40 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                                 </Button>
                             ))}
                         </Group>
-                    </Box>
+                    </section>
                 )}
-                {externalLinks ? (
-                    <Box component="section">
-                        <Group spacing="sm">
-                            <Button
-                                compact
-                                component="a"
-                                href={`https://www.last.fm/music/${encodeURIComponent(
-                                    detailQuery?.data?.albumArtist || '',
-                                )}/${encodeURIComponent(detailQuery.data?.name || '')}`}
-                                radius="md"
-                                rel="noopener noreferrer"
-                                size="md"
-                                target="_blank"
-                                tooltip={{
-                                    label: t('action.openIn.lastfm'),
-                                }}
-                                variant="subtle"
-                            >
-                                <FaLastfmSquare size={25} />
-                            </Button>
-                            {mbzId ? (
-                                <Button
-                                    compact
+                {externalLinks && (lastFM || musicBrainz) ? (
+                    <section>
+                        <Group gap="sm">
+                            {lastFM && (
+                                <ActionIcon
+                                    component="a"
+                                    href={`https://www.last.fm/music/${encodeURIComponent(
+                                        detailQuery?.data?.albumArtist || '',
+                                    )}/${encodeURIComponent(detailQuery.data?.name || '')}`}
+                                    icon="brandLastfm"
+                                    iconProps={{
+                                        fill: 'default',
+                                        size: 'xl',
+                                    }}
+                                    radius="md"
+                                    rel="noopener noreferrer"
+                                    target="_blank"
+                                    tooltip={{
+                                        label: t('action.openIn.lastfm'),
+                                    }}
+                                    variant="subtle"
+                                />
+                            )}
+                            {mbzId && musicBrainz ? (
+                                <ActionIcon
                                     component="a"
                                     href={`https://musicbrainz.org/release/${mbzId}`}
+                                    icon="brandMusicBrainz"
+                                    iconProps={{
+                                        fill: 'default',
+                                        size: 'xl',
+                                    }}
                                     radius="md"
                                     rel="noopener noreferrer"
                                     size="md"
@@ -437,29 +437,20 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                                         label: t('action.openIn.musicbrainz'),
                                     }}
                                     variant="subtle"
-                                >
-                                    <SiMusicbrainz size={25} />
-                                </Button>
+                                />
                             ) : null}
                         </Group>
-                    </Box>
+                    </section>
                 ) : null}
                 {comment && (
-                    <Box component="section">
+                    <section>
                         <Spoiler maxHeight={75}>{replaceURLWithHTMLLinks(comment)}</Spoiler>
-                    </Box>
+                    </section>
                 )}
-                <Box style={{ minHeight: '300px' }}>
+                <div style={{ minHeight: '300px' }}>
                     <VirtualTable
-                        key={`table-${tableConfig.rowHeight}`}
-                        ref={tableRef}
-                        autoHeight
-                        shouldUpdateSong
-                        stickyHeader
-                        suppressCellFocus
-                        suppressLoadingOverlay
-                        suppressRowDrag
                         autoFitColumns={tableConfig.autoFit}
+                        autoHeight
                         columnDefs={columnDefs}
                         context={{
                             currentSong,
@@ -479,18 +470,25 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                             if (isFullWidthRow(data.data)) return false;
                             return true;
                         }}
-                        rowClassRules={rowClassRules}
-                        rowData={songsRowData}
-                        rowSelection="multiple"
+                        key={`table-${tableConfig.rowHeight}`}
                         onCellContextMenu={onCellContextMenu}
                         onColumnMoved={onColumnMoved}
                         onRowDoubleClicked={handleRowDoubleClick}
+                        ref={tableRef}
+                        rowClassRules={rowClassRules}
+                        rowData={songsRowData}
+                        rowSelection="multiple"
+                        shouldUpdateSong
+                        stickyHeader
+                        suppressCellFocus
+                        suppressLoadingOverlay
+                        suppressRowDrag
                     />
-                </Box>
+                </div>
                 <Stack
-                    ref={cq.ref}
+                    gap="lg"
                     mt="3rem"
-                    spacing="lg"
+                    ref={cq.ref}
                 >
                     {cq.height || cq.width ? (
                         <>
@@ -498,7 +496,6 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                                 .filter((c) => !c.isHidden)
                                 .map((carousel, index) => (
                                     <MemoizedSwiperGridCarousel
-                                        key={`carousel-${carousel.uniqueId}-${index}`}
                                         cardRows={[
                                             {
                                                 property: 'name',
@@ -529,6 +526,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                                         data={carousel.data}
                                         isLoading={carousel.loading}
                                         itemType={LibraryItem.ALBUM}
+                                        key={`carousel-${carousel.uniqueId}-${index}`}
                                         route={{
                                             route: AppRoute.LIBRARY_ALBUMS_DETAIL,
                                             slugs: [{ idProperty: 'id', slugProperty: 'albumId' }],
@@ -542,7 +540,7 @@ export const AlbumDetailContent = ({ tableRef, background }: AlbumDetailContentP
                         </>
                     ) : null}
                 </Stack>
-            </DetailContainer>
-        </ContentContainer>
+            </div>
+        </div>
     );
 };

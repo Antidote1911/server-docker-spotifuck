@@ -1,22 +1,24 @@
-import { Group } from '@mantine/core';
-import { useDragControls, Reorder, DragControls } from 'framer-motion';
-import { MdDragIndicator } from 'react-icons/md';
-import { Checkbox } from '/@/renderer/components';
+import { DragControls, Reorder, useDragControls } from 'motion/react';
+
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Checkbox } from '/@/shared/components/checkbox/checkbox';
+import { Group } from '/@/shared/components/group/group';
+import { Text } from '/@/shared/components/text/text';
 
 const DragHandle = ({ dragControls }: { dragControls: DragControls }) => {
     return (
-        <MdDragIndicator
-            color="white"
-            style={{ cursor: 'grab' }}
+        <ActionIcon
+            icon="dragVertical"
+            iconProps={{
+                size: 'md',
+            }}
             onPointerDown={(event) => dragControls.start(event)}
+            size="xs"
+            style={{ cursor: 'grab' }}
+            variant="transparent"
         />
     );
 };
-
-interface SidebarItem {
-    disabled: boolean;
-    id: string;
-}
 
 export interface DraggableItemProps {
     handleChangeDisabled: (id: string, e: boolean) => void;
@@ -24,7 +26,12 @@ export interface DraggableItemProps {
     value: string;
 }
 
-export const DraggableItem = ({ item, value, handleChangeDisabled }: DraggableItemProps) => {
+interface SidebarItem {
+    disabled: boolean;
+    id: string;
+}
+
+export const DraggableItem = ({ handleChangeDisabled, item, value }: DraggableItemProps) => {
     const dragControls = useDragControls();
 
     return (
@@ -35,16 +42,17 @@ export const DraggableItem = ({ item, value, handleChangeDisabled }: DraggableIt
             value={item}
         >
             <Group
-                noWrap
-                h="3rem"
+                py="md"
                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}
+                wrap="nowrap"
             >
                 <Checkbox
                     checked={!item.disabled}
                     onChange={(e) => handleChangeDisabled(item.id, e.target.checked)}
+                    size="xs"
                 />
                 <DragHandle dragControls={dragControls} />
-                {value}
+                <Text>{value}</Text>
             </Group>
         </Reorder.Item>
     );

@@ -1,31 +1,31 @@
-/* eslint-disable react/no-unknown-property */
-import { useCallback, useState, Fragment, useRef } from 'react';
-import { ActionIcon, Group, Kbd, ScrollArea } from '@mantine/core';
-import { useDisclosure, useDebouncedValue } from '@mantine/hooks';
-import { RiSearchLine, RiCloseFill } from 'react-icons/ri';
+import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
+import { Fragment, useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router';
-import styled from 'styled-components';
-import { GoToCommands } from './go-to-commands';
+
+import { usePlayQueueAdd } from '/@/renderer/features/player';
 import { Command, CommandPalettePages } from '/@/renderer/features/search/components/command';
-import { Button, Modal, Paper, Spinner, TextInput } from '/@/renderer/components';
-import { HomeCommands } from './home-commands';
+import { GoToCommands } from '/@/renderer/features/search/components/go-to-commands';
+import { HomeCommands } from '/@/renderer/features/search/components/home-commands';
+import { LibraryCommandItem } from '/@/renderer/features/search/components/library-command-item';
 import { ServerCommands } from '/@/renderer/features/search/components/server-commands';
 import { useSearch } from '/@/renderer/features/search/queries/search-query';
-import { useCurrentServer } from '/@/renderer/store';
 import { AppRoute } from '/@/renderer/router/routes';
-import { LibraryCommandItem } from '/@/renderer/features/search/components/library-command-item';
-import { LibraryItem } from '/@/renderer/api/types';
-import { usePlayQueueAdd } from '/@/renderer/features/player';
+import { useCurrentServer } from '/@/renderer/store';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Box } from '/@/shared/components/box/box';
+import { Button } from '/@/shared/components/button/button';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { Kbd } from '/@/shared/components/kbd/kbd';
+import { Modal } from '/@/shared/components/modal/modal';
+import { Spinner } from '/@/shared/components/spinner/spinner';
+import { TextInput } from '/@/shared/components/text-input/text-input';
+import { LibraryItem } from '/@/shared/types/domain-types';
 
 interface CommandPaletteProps {
     modalProps: (typeof useDisclosure)['arguments'];
 }
-
-const CustomModal = styled(Modal)`
-    & .mantine-Modal-header {
-        display: none;
-    }
-`;
 
 export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
     const navigate = useNavigate();
@@ -37,6 +37,7 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
     const activePage = pages[pages.length - 1];
     const isHome = activePage === CommandPalettePages.HOME;
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const { t } = useTranslation();
 
     const popPage = useCallback(() => {
         setPages((pages) => {
@@ -67,7 +68,7 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
     const handlePlayQueueAdd = usePlayQueueAdd();
 
     return (
-        <CustomModal
+        <Modal
             {...modalProps}
             centered
             handlers={{
@@ -89,19 +90,21 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                     }
                 },
             }}
-            scrollAreaComponent={ScrollArea.Autosize}
             size="lg"
+            styles={{
+                header: { display: 'none' },
+            }}
         >
             <Group
+                gap="sm"
                 mb="1rem"
-                spacing="sm"
             >
                 {pages.map((page, index) => (
                     <Fragment key={page}>
                         {index > 0 && ' > '}
                         <Button
-                            compact
                             disabled
+                            size="compact-md"
                             variant="default"
                         >
                             {page?.toLocaleUpperCase()}
@@ -116,26 +119,29 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                     return 0;
                 }}
                 label="Global Command Menu"
-                value={value}
                 onValueChange={setValue}
+                value={value}
             >
                 <TextInput
-                    ref={searchInputRef}
                     data-autofocus
-                    icon={<RiSearchLine />}
-                    rightSection={
-                        <ActionIcon
-                            onClick={() => {
-                                setQuery('');
-                                searchInputRef.current?.focus();
-                            }}
-                        >
-                            <RiCloseFill />
-                        </ActionIcon>
-                    }
-                    size="lg"
-                    value={query}
+                    leftSection={<Icon icon="search" />}
                     onChange={(e) => setQuery(e.currentTarget.value)}
+                    ref={searchInputRef}
+                    rightSection={
+                        query && (
+                            <ActionIcon
+                                onClick={() => {
+                                    setQuery('');
+                                    searchInputRef.current?.focus();
+                                }}
+                                variant="transparent"
+                            >
+                                <Icon icon="x" />
+                            </ActionIcon>
+                        )
+                    }
+                    size="sm"
+                    value={query}
                 />
                 <Command.Separator />
                 <Command.List>
@@ -145,7 +151,6 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                             {data?.albums?.map((album) => (
                                 <Command.Item
                                     key={`search-album-${album.id}`}
-                                    value={`search-${album.id}`}
                                     onSelect={() => {
                                         navigate(
                                             generatePath(AppRoute.LIBRARY_ALBUMS_DETAIL, {
@@ -155,6 +160,7 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                                         modalProps.handlers.close();
                                         setQuery('');
                                     }}
+                                    value={`search-${album.id}`}
                                 >
                                     <LibraryCommandItem
                                         handlePlayQueueAdd={handlePlayQueueAdd}
@@ -175,7 +181,6 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                             {data?.albumArtists.map((artist) => (
                                 <Command.Item
                                     key={`artist-${artist.id}`}
-                                    value={`search-${artist.id}`}
                                     onSelect={() => {
                                         navigate(
                                             generatePath(AppRoute.LIBRARY_ALBUM_ARTISTS_DETAIL, {
@@ -185,15 +190,20 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                                         modalProps.handlers.close();
                                         setQuery('');
                                     }}
+                                    value={`search-${artist.id}`}
                                 >
                                     <LibraryCommandItem
+                                        disabled={artist?.albumCount === 0}
                                         handlePlayQueueAdd={handlePlayQueueAdd}
                                         id={artist.id}
                                         imageUrl={artist.imageUrl}
                                         itemType={LibraryItem.ALBUM_ARTIST}
                                         subtitle={
-                                            (artist?.albumCount || 0) > 0
-                                                ? `${artist.albumCount} albums`
+                                            artist?.albumCount !== undefined &&
+                                            artist?.albumCount !== null
+                                                ? t('entity.albumWithCount', {
+                                                      count: artist.albumCount,
+                                                  })
                                                 : undefined
                                         }
                                         title={artist.name}
@@ -207,7 +217,6 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                             {data?.songs.map((song) => (
                                 <Command.Item
                                     key={`artist-${song.id}`}
-                                    value={`search-${song.id}`}
                                     onSelect={() => {
                                         navigate(
                                             generatePath(AppRoute.LIBRARY_ALBUMS_DETAIL, {
@@ -217,6 +226,7 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                                         modalProps.handlers.close();
                                         setQuery('');
                                     }}
+                                    value={`search-${song.id}`}
                                 >
                                     <LibraryCommandItem
                                         handlePlayQueueAdd={handlePlayQueueAdd}
@@ -257,22 +267,22 @@ export const CommandPalette = ({ modalProps }: CommandPaletteProps) => {
                     )}
                 </Command.List>
             </Command>
-            <Paper
+            <Box
                 mt="0.5rem"
                 p="0.5rem"
             >
-                <Group position="apart">
+                <Group justify="space-between">
                     <Command.Loading>
                         {isHome && isLoading && query !== '' && <Spinner />}
                     </Command.Loading>
-                    <Group spacing="sm">
+                    <Group gap="sm">
                         <Kbd size="md">ESC</Kbd>
                         <Kbd size="md">↑</Kbd>
                         <Kbd size="md">↓</Kbd>
                         <Kbd size="md">⏎</Kbd>
                     </Group>
                 </Group>
-            </Paper>
-        </CustomModal>
+            </Box>
+        </Modal>
     );
 };

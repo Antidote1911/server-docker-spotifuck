@@ -1,8 +1,7 @@
-/* eslint import/prefer-default-export: off, import/no-mutable-exports: off */
+import log from 'electron-log/main';
 import path from 'path';
 import process from 'process';
 import { URL } from 'url';
-import log from 'electron-log/main';
 
 export let resolveHtmlPath: (htmlFileName: string) => string;
 
@@ -35,6 +34,10 @@ export const hotkeyToElectronAccelerator = (hotkey: string) => {
     let accelerator = hotkey;
 
     const replacements = {
+        arrowdown: 'Down',
+        arrowleft: 'Left',
+        arrowright: 'Right',
+        arrowup: 'Up',
         mod: 'CmdOrCtrl',
         numpad: 'num',
         numpadadd: 'numadd',
@@ -72,7 +75,7 @@ const logColor = {
 
 export const createLog = (data: {
     message: string;
-    type: 'debug' | 'verbose' | 'success' | 'error' | 'warning' | 'info';
+    type: 'debug' | 'error' | 'info' | 'success' | 'verbose' | 'warning';
 }) => {
     logMethod[data.type](`%c${data.message}`, `color: ${logColor[data.type]}`);
 };

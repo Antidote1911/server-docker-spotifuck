@@ -1,15 +1,28 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { throttle } from 'lodash';
+import clsx from 'clsx';
+import throttle from 'lodash/throttle';
+import { motion } from 'motion/react';
+import {
+    CSSProperties,
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Outlet, useLocation } from 'react-router';
-import styled from 'styled-components';
+
+import styles from './main-content.module.css';
+
+import { FullScreenOverlay } from '/@/renderer/layouts/default-layout/full-screen-overlay';
+import { LeftSidebar } from '/@/renderer/layouts/default-layout/left-sidebar';
+import { RightSidebar } from '/@/renderer/layouts/default-layout/right-sidebar';
 import { AppRoute } from '/@/renderer/router/routes';
 import { useAppStoreActions, useSidebarStore } from '/@/renderer/store';
 import { useGeneralSettings } from '/@/renderer/store/settings.store';
-import { constrainSidebarWidth, constrainRightSidebarWidth } from '/@/renderer/utils';
-import { LeftSidebar } from '/@/renderer/layouts/default-layout/left-sidebar';
-import { FullScreenOverlay } from '/@/renderer/layouts/default-layout/full-screen-overlay';
-import { RightSidebar } from '/@/renderer/layouts/default-layout/right-sidebar';
-import { Spinner } from '/@/renderer/components';
+import { constrainRightSidebarWidth, constrainSidebarWidth } from '/@/renderer/utils';
+import { Spinner } from '/@/shared/components/spinner/spinner';
 
 const SideDrawerQueue = lazy(() =>
     import('/@/renderer/layouts/default-layout/side-drawer-queue').then((module) => ({
@@ -19,31 +32,11 @@ const SideDrawerQueue = lazy(() =>
 
 const MINIMUM_SIDEBAR_WIDTH = 260;
 
-const MainContentContainer = styled.div<{
-    $leftSidebarWidth: string;
-    $rightExpanded?: boolean;
-    $rightSidebarWidth?: string;
-    $shell?: boolean;
-    $sidebarCollapsed?: boolean;
-}>`
-    position: relative;
-    display: ${(props) => (props.$shell ? 'flex' : 'grid')};
-    grid-area: main-content;
-    grid-template-areas: 'sidebar . right-sidebar';
-    grid-template-rows: 1fr;
-    grid-template-columns: ${(props) =>
-            props.$sidebarCollapsed ? '80px' : props.$leftSidebarWidth} 1fr ${(props) =>
-            props.$rightExpanded && props.$rightSidebarWidth};
-
-    gap: 0;
-    background: var(--main-bg);
-`;
-
 export const MainContent = ({ shell }: { shell?: boolean }) => {
     const location = useLocation();
-    const { collapsed, leftWidth, rightWidth, rightExpanded } = useSidebarStore();
+    const { collapsed, leftWidth, rightExpanded, rightWidth } = useSidebarStore();
     const { setSideBar } = useAppStoreActions();
-    const { sideQueueType, showQueueDrawerButton } = useGeneralSettings();
+    const { showQueueDrawerButton, sideQueueType } = useGeneralSettings();
     const [isResizing, setIsResizing] = useState(false);
     const [isResizingRight, setIsResizingRight] = useState(false);
 
@@ -95,13 +88,20 @@ export const MainContent = ({ shell }: { shell?: boolean }) => {
     }, [throttledResize, stopResizing]);
 
     return (
-        <MainContentContainer
-            $leftSidebarWidth={leftWidth}
-            $rightExpanded={showSideQueue && sideQueueType === 'sideQueue'}
-            $rightSidebarWidth={rightWidth}
-            $shell={shell}
-            $sidebarCollapsed={collapsed}
+        <motion.div
+            className={clsx(styles.mainContentContainer, {
+                [styles.rightExpanded]: showSideQueue && sideQueueType === 'sideQueue',
+                [styles.shell]: shell,
+                [styles.sidebarCollapsed]: collapsed,
+                [styles.sidebarExpanded]: !collapsed,
+            })}
             id="main-content"
+            style={
+                {
+                    '--right-sidebar-width': rightWidth,
+                    '--sidebar-width': leftWidth,
+                } as CSSProperties
+            }
         >
             {!shell && (
                 <>
@@ -114,8 +114,8 @@ export const MainContent = ({ shell }: { shell?: boolean }) => {
                         startResizing={startResizing}
                     />
                     <RightSidebar
-                        ref={rightSidebarRef}
                         isResizing={isResizingRight}
+                        ref={rightSidebarRef}
                         startResizing={startResizing}
                     />
                 </>
@@ -123,6 +123,6 @@ export const MainContent = ({ shell }: { shell?: boolean }) => {
             <Suspense fallback={<Spinner container />}>
                 <Outlet />
             </Suspense>
-        </MainContentContainer>
+        </motion.div>
     );
 };

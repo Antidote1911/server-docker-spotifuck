@@ -1,4 +1,5 @@
-import { MutableRefObject, useCallback, useMemo } from 'react';
+import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
+
 import {
     BodyScrollEvent,
     ColDef,
@@ -8,26 +9,27 @@ import {
     PaginationChangedEvent,
     RowDoubleClickedEvent,
 } from '@ag-grid-community/core';
-import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
 import { QueryKey, useQueryClient } from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import orderBy from 'lodash/orderBy';
+import { MutableRefObject, useCallback, useMemo } from 'react';
 import { generatePath, useNavigate } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
+
 import { api } from '/@/renderer/api';
-import { QueryPagination, queryKeys } from '/@/renderer/api/query-keys';
+import { queryKeys, QueryPagination } from '/@/renderer/api/query-keys';
+import { getColumnDefs, VirtualTableProps } from '/@/renderer/components/virtual-table';
+import { SetContextMenuItems, useHandleTableContextMenu } from '/@/renderer/features/context-menu';
+import { AppRoute } from '/@/renderer/router/routes';
+import { PersistedTableColumn, useListStoreActions } from '/@/renderer/store';
+import { ListKey, useListStoreByKey } from '/@/renderer/store/list.store';
 import {
     BasePaginatedResponse,
     BaseQuery,
     LibraryItem,
     ServerListItem,
-} from '/@/renderer/api/types';
-import { getColumnDefs, VirtualTableProps } from '/@/renderer/components/virtual-table';
-import { SetContextMenuItems, useHandleTableContextMenu } from '/@/renderer/features/context-menu';
-import { AppRoute } from '/@/renderer/router/routes';
-import { useListStoreActions } from '/@/renderer/store';
-import { ListDisplayType, TablePagination } from '/@/renderer/types';
-import { useSearchParams } from 'react-router-dom';
-import { ListKey, useListStoreByKey } from '../../../store/list.store';
+} from '/@/shared/types/domain-types';
+import { ListDisplayType, TablePagination } from '/@/shared/types/types';
 
 export type AgGridFetchFn<TResponse, TFilter> = (
     args: { filter: TFilter; limit: number; startIndex: number },
@@ -44,24 +46,24 @@ interface UseAgGridProps<TFilter> {
     itemCount?: number;
     itemType: LibraryItem;
     pageKey: string;
-    server: ServerListItem | null;
+    server: null | ServerListItem;
     tableRef: MutableRefObject<AgGridReactType | null>;
 }
 
 const BLOCK_SIZE = 500;
 
 export const useVirtualTable = <TFilter extends BaseQuery<any>>({
-    server,
-    tableRef,
-    pageKey,
-    itemType,
+    columnType,
     contextMenu,
-    itemCount,
     customFilters,
-    isSearchParams,
     isClientSide,
     isClientSideSort,
-    columnType,
+    isSearchParams,
+    itemCount,
+    itemType,
+    pageKey,
+    server,
+    tableRef,
 }: UseAgGridProps<TFilter>) => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
@@ -105,44 +107,42 @@ export const useVirtualTable = <TFilter extends BaseQuery<any>>({
     const queryKeyFn:
         | ((serverId: string, query: Record<any, any>, pagination: QueryPagination) => QueryKey)
         | null = useMemo(() => {
-        if (itemType === LibraryItem.ALBUM) {
-            return queryKeys.albums.list;
+        switch (itemType) {
+            case LibraryItem.ALBUM:
+                return queryKeys.albums.list;
+            case LibraryItem.ALBUM_ARTIST:
+                return queryKeys.albumArtists.list;
+            case LibraryItem.ARTIST:
+                return queryKeys.artists.list;
+            case LibraryItem.GENRE:
+                return queryKeys.genres.list;
+            case LibraryItem.PLAYLIST:
+                return queryKeys.playlists.list;
+            case LibraryItem.SONG:
+                return queryKeys.songs.list;
+            default:
+                return null;
         }
-        if (itemType === LibraryItem.ALBUM_ARTIST) {
-            return queryKeys.albumArtists.list;
-        }
-        if (itemType === LibraryItem.PLAYLIST) {
-            return queryKeys.playlists.list;
-        }
-        if (itemType === LibraryItem.SONG) {
-            return queryKeys.songs.list;
-        }
-        if (itemType === LibraryItem.GENRE) {
-            return queryKeys.genres.list;
-        }
-
-        return null;
     }, [itemType]);
 
     const queryFn: ((args: any) => Promise<BasePaginatedResponse<any> | null | undefined>) | null =
         useMemo(() => {
-            if (itemType === LibraryItem.ALBUM) {
-                return api.controller.getAlbumList;
+            switch (itemType) {
+                case LibraryItem.ALBUM:
+                    return api.controller.getAlbumList;
+                case LibraryItem.ALBUM_ARTIST:
+                    return api.controller.getAlbumArtistList;
+                case LibraryItem.ARTIST:
+                    return api.controller.getArtistList;
+                case LibraryItem.GENRE:
+                    return api.controller.getGenreList;
+                case LibraryItem.PLAYLIST:
+                    return api.controller.getPlaylistList;
+                case LibraryItem.SONG:
+                    return api.controller.getSongList;
+                default:
+                    return null;
             }
-            if (itemType === LibraryItem.ALBUM_ARTIST) {
-                return api.controller.getAlbumArtistList;
-            }
-            if (itemType === LibraryItem.PLAYLIST) {
-                return api.controller.getPlaylistList;
-            }
-            if (itemType === LibraryItem.SONG) {
-                return api.controller.getSongList;
-            }
-            if (itemType === LibraryItem.GENRE) {
-                return api.controller.getGenreList;
-            }
-
-            return null;
         }, [itemType]);
 
     const onGridReady = useCallback(
@@ -294,7 +294,7 @@ export const useVirtualTable = <TFilter extends BaseQuery<any>>({
         if (!columnsOrder) return;
 
         const columnsInSettings = properties.table.columns;
-        const updatedColumns = [];
+        const updatedColumns: PersistedTableColumn[] = [];
         for (const column of columnsOrder) {
             const columnInSettings = columnsInSettings.find(
                 (c) => c.column === column.getColDef().colId,
@@ -390,7 +390,9 @@ export const useVirtualTable = <TFilter extends BaseQuery<any>>({
                     break;
                 case LibraryItem.ARTIST:
                     navigate(
-                        generatePath(AppRoute.LIBRARY_ARTISTS_DETAIL, { artistId: e.data.id }),
+                        generatePath(AppRoute.LIBRARY_ARTISTS_DETAIL, {
+                            artistId: e.data.id,
+                        }),
                     );
                     break;
                 case LibraryItem.PLAYLIST:

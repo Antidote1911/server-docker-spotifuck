@@ -1,12 +1,20 @@
+import type {
+    CardRoute,
+    CardRow,
+    ListDisplayType,
+    PlayQueueAddOptions,
+} from '/@/shared/types/types';
 import type { Ref } from 'react';
+import type { FixedSizeListProps } from 'react-window';
+
 import debounce from 'lodash/debounce';
 import memoize from 'memoize-one';
-import type { FixedSizeListProps } from 'react-window';
 import { FixedSizeList } from 'react-window';
-import styled from 'styled-components';
+
+import styles from './virtual-grid-wrapper.module.css';
+
 import { GridCard } from '/@/renderer/components/virtual-grid/grid-card';
-import type { CardRow, ListDisplayType, CardRoute, PlayQueueAddOptions } from '/@/renderer/types';
-import { Album, AlbumArtist, Artist, LibraryItem } from '/@/renderer/api/types';
+import { Album, AlbumArtist, Artist, LibraryItem } from '/@/shared/types/domain-types';
 
 const createItemData = memoize(
     (
@@ -43,27 +51,27 @@ const createItemData = memoize(
 const createScrollHandler = memoize((onScroll) => debounce(onScroll, 250));
 
 export const VirtualGridWrapper = ({
-    refInstance,
     cardRows,
-    itemGap,
-    itemType,
-    itemWidth,
-    display,
-    itemHeight,
-    itemCount,
     columnCount,
-    rowCount,
-    initialScrollOffset,
+    display,
     handleFavorite,
     handlePlayQueueAdd,
-    itemData,
-    route,
-    onScroll,
     height,
-    width,
+    initialScrollOffset,
+    itemCount,
+    itemData,
+    itemGap,
+    itemHeight,
+    itemType,
+    itemWidth,
+    onScroll,
+    refInstance,
     resetInfiniteLoaderCache,
+    route,
+    rowCount,
+    width,
     ...rest
-}: Omit<FixedSizeListProps, 'ref' | 'itemSize' | 'children' | 'height' | 'width'> & {
+}: Omit<FixedSizeListProps, 'children' | 'height' | 'itemSize' | 'ref' | 'width'> & {
     cardRows: CardRow<Album | AlbumArtist | Artist>[];
     columnCount: number;
     display: ListDisplayType;
@@ -112,25 +120,23 @@ export const VirtualGridWrapper = ({
             itemCount={rowCount}
             itemData={memoizedItemData}
             itemSize={itemHeight}
+            onScroll={memoizedOnScroll}
             overscanCount={5}
             width={(width && Number(width)) || 0}
-            onScroll={memoizedOnScroll}
         >
             {GridCard}
         </FixedSizeList>
     );
 };
 
-VirtualGridWrapper.defaultProps = {
-    route: undefined,
+interface VirtualGridContainerProps {
+    children: React.ReactNode;
+}
+
+export const VirtualGridContainer = ({ children }: VirtualGridContainerProps) => {
+    return <div className={styles.virtualGridContainer}>{children}</div>;
 };
 
-export const VirtualGridContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-`;
-
-export const VirtualGridAutoSizerContainer = styled.div`
-    flex: 1;
-`;
+export const VirtualGridAutoSizerContainer = ({ children }: VirtualGridContainerProps) => {
+    return <div className={styles.virtualGridAutoSizerContainer}>{children}</div>;
+};

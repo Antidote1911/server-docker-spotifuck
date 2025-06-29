@@ -1,9 +1,10 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
-import { QueueSong, ServerType } from '/@/renderer/api/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
 import { useSendScrobble } from '/@/renderer/features/player/mutations/scrobble-mutation';
 import { usePlayerStore } from '/@/renderer/store';
 import { usePlaybackSettings } from '/@/renderer/store/settings.store';
-import { PlayerStatus } from '/@/renderer/types';
+import { QueueSong, ServerType } from '/@/shared/types/domain-types';
+import { PlayerStatus } from '/@/shared/types/types';
 
 /*
  Scrobble Conditions (match any):
@@ -82,12 +83,12 @@ export const useScrobble = () => {
         [isScrobbleEnabled, sendScrobble],
     );
 
-    const progressIntervalId = useRef<ReturnType<typeof setInterval> | null>(null);
-    const songChangeTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const progressIntervalId = useRef<null | ReturnType<typeof setInterval>>(null);
+    const songChangeTimeoutId = useRef<null | ReturnType<typeof setTimeout>>(null);
     const handleScrobbleFromSongChange = useCallback(
         (
-            current: (QueueSong | number | undefined)[],
-            previous: (QueueSong | number | undefined)[],
+            current: (number | QueueSong | undefined)[],
+            previous: (number | QueueSong | undefined)[],
         ) => {
             if (!isScrobbleEnabled) return;
 
@@ -179,8 +180,8 @@ export const useScrobble = () => {
 
     const handleScrobbleFromStatusChange = useCallback(
         (
-            current: (PlayerStatus | number | undefined)[],
-            previous: (PlayerStatus | number | undefined)[],
+            current: (number | PlayerStatus | undefined)[],
+            previous: (number | PlayerStatus | undefined)[],
         ) => {
             if (!isScrobbleEnabled) return;
 
@@ -342,8 +343,12 @@ export const useScrobble = () => {
                 //    a single track on repeat one, or one track added to the queue
                 //    multiple times in a row and playback goes normally (no next/previous)
                 equalityFn: (a, b) =>
+                    // compute whether the song changed
                     (a[0] as QueueSong)?.uniqueId === (b[0] as QueueSong)?.uniqueId &&
-                    a[2] === b[2],
+                    // compute whether the position changed. This should imply 1
+                    a[2] === b[2] &&
+                    // compute whether the same player: relevant for repeat one and repeat all (one track)
+                    a[3] === b[3],
             },
         );
 

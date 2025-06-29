@@ -1,15 +1,17 @@
 import isElectron from 'is-electron';
-import { NumberInput, Switch, TextInput } from '/@/renderer/components';
+import { useTranslation } from 'react-i18next';
+
 import {
     SettingOption,
     SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
 import {
     useDiscordSetttings,
-    useSettingsStoreActions,
     useGeneralSettings,
+    useSettingsStoreActions,
 } from '/@/renderer/store';
-import { useTranslation } from 'react-i18next';
+import { Switch } from '/@/shared/components/switch/switch';
+import { TextInput } from '/@/shared/components/text-input/text-input';
 
 export const DiscordSettings = () => {
     const { t } = useTranslation();
@@ -74,58 +76,6 @@ export const DiscordSettings = () => {
         },
         {
             control: (
-                <NumberInput
-                    value={settings.updateInterval}
-                    onChange={(e) => {
-                        let value = e ? Number(e) : 0;
-                        if (value < 15) {
-                            value = 15;
-                        }
-
-                        setSettings({
-                            discord: {
-                                ...settings,
-                                updateInterval: value,
-                            },
-                        });
-                    }}
-                />
-            ),
-            description: t('setting.discordUpdateInterval', {
-                context: 'description',
-                postProcess: 'sentenceCase',
-            }),
-            isHidden: !isElectron(),
-            title: t('setting.discordUpdateInterval', {
-                discord: 'Discord',
-                postProcess: 'sentenceCase',
-            }),
-        },
-        {
-            control: (
-                <Switch
-                    checked={settings.enableIdle}
-                    onChange={(e) => {
-                        setSettings({
-                            discord: {
-                                ...settings,
-                                enableIdle: e.currentTarget.checked,
-                            },
-                        });
-                    }}
-                />
-            ),
-            description: t('setting.discordIdleStatus', {
-                context: 'description',
-                postProcess: 'sentenceCase',
-            }),
-            isHidden: !isElectron(),
-            title: t('setting.discordIdleStatus', {
-                postProcess: 'sentenceCase',
-            }),
-        },
-        {
-            control: (
                 <Switch
                     checked={settings.showAsListening}
                     onChange={(e) => {
@@ -144,6 +94,32 @@ export const DiscordSettings = () => {
             }),
             isHidden: !isElectron(),
             title: t('setting.discordListening', {
+                postProcess: 'sentenceCase',
+            }),
+        },
+        {
+            control: (
+                <Switch
+                    checked={settings.showServerImage}
+                    onChange={(e) => {
+                        setSettings({
+                            discord: {
+                                ...settings,
+                                showServerImage: e.currentTarget.checked,
+                            },
+                        });
+                    }}
+                />
+            ),
+            description: t('setting.discordServeImage', {
+                context: 'description',
+
+                discord: 'Discord',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.discordServeImage', {
+                discord: 'Discord',
                 postProcess: 'sentenceCase',
             }),
         },

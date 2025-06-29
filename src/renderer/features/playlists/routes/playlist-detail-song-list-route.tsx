@@ -1,23 +1,33 @@
-import { useRef, useState } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { Box, Group } from '@mantine/core';
+
 import { closeAllModals, openModal } from '@mantine/modals';
+import { motion } from 'motion/react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { generatePath, useNavigate, useParams } from 'react-router';
-import { PlaylistDetailSongListContent } from '../components/playlist-detail-song-list-content';
-import { PlaylistDetailSongListHeader } from '../components/playlist-detail-song-list-header';
-import { AnimatedPage } from '/@/renderer/features/shared';
+
+import { PlaylistDetailSongListContent } from '/@/renderer/features/playlists/components/playlist-detail-song-list-content';
+import { PlaylistDetailSongListHeader } from '/@/renderer/features/playlists/components/playlist-detail-song-list-header';
 import { PlaylistQueryBuilder } from '/@/renderer/features/playlists/components/playlist-query-builder';
-import { usePlaylistDetail } from '/@/renderer/features/playlists/queries/playlist-detail-query';
-import { useCreatePlaylist } from '/@/renderer/features/playlists/mutations/create-playlist-mutation';
-import { AppRoute } from '/@/renderer/router/routes';
-import { useDeletePlaylist } from '/@/renderer/features/playlists/mutations/delete-playlist-mutation';
-import { Button, Paper, Text, toast } from '/@/renderer/components';
 import { SaveAsPlaylistForm } from '/@/renderer/features/playlists/components/save-as-playlist-form';
-import { useCurrentServer, usePlaylistDetailStore } from '/@/renderer/store';
-import { PlaylistSongListQuery, ServerType, SongListSort, SortOrder } from '/@/renderer/api/types';
+import { useCreatePlaylist } from '/@/renderer/features/playlists/mutations/create-playlist-mutation';
+import { useDeletePlaylist } from '/@/renderer/features/playlists/mutations/delete-playlist-mutation';
+import { usePlaylistDetail } from '/@/renderer/features/playlists/queries/playlist-detail-query';
 import { usePlaylistSongList } from '/@/renderer/features/playlists/queries/playlist-song-list-query';
+import { AnimatedPage } from '/@/renderer/features/shared';
+import { AppRoute } from '/@/renderer/router/routes';
+import { useCurrentServer, usePlaylistDetailStore } from '/@/renderer/store';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Box } from '/@/shared/components/box/box';
+import { Group } from '/@/shared/components/group/group';
+import { Text } from '/@/shared/components/text/text';
+import { toast } from '/@/shared/components/toast/toast';
+import {
+    PlaylistSongListQuery,
+    ServerType,
+    SongListSort,
+    SortOrder,
+} from '/@/shared/types/domain-types';
 
 const PlaylistDetailSongListRoute = () => {
     const { t } = useTranslation();
@@ -105,7 +115,6 @@ const PlaylistDetailSongListRoute = () => {
                         name: detailQuery?.data?.name,
                         public: detailQuery?.data?.public || false,
                     }}
-                    serverId={detailQuery?.data?.serverId}
                     onCancel={closeAllModals}
                     onSuccess={(data) =>
                         navigate(
@@ -114,6 +123,7 @@ const PlaylistDetailSongListRoute = () => {
                             }),
                         )
                     }
+                    serverId={detailQuery?.data?.serverId}
                 />
             ),
             title: t('common.saveAs', { postProcess: 'sentenceCase' }),
@@ -164,41 +174,39 @@ const PlaylistDetailSongListRoute = () => {
             />
 
             {(isSmartPlaylist || showQueryBuilder) && (
-                <Box>
-                    <Paper
+                <motion.div>
+                    <Box
                         h="100%"
                         mah="35vh"
+                        p="md"
                         w="100%"
                     >
-                        <Group p="1rem">
-                            <Button
-                                compact
-                                variant="default"
+                        <Group pb="md">
+                            <ActionIcon
+                                icon={isQueryBuilderExpanded ? 'arrowUpS' : 'arrowDownS'}
+                                iconProps={{
+                                    size: 'md',
+                                }}
                                 onClick={handleToggleExpand}
-                            >
-                                {isQueryBuilderExpanded ? (
-                                    <RiArrowUpSLine size={20} />
-                                ) : (
-                                    <RiArrowDownSLine size={20} />
-                                )}
-                            </Button>
-                            <Text>Query Editor</Text>
+                                size="xs"
+                            />
+                            <Text>{t('form.queryEditor.title', { postProcess: 'titleCase' })}</Text>
                         </Group>
                         {isQueryBuilderExpanded && (
                             <PlaylistQueryBuilder
-                                key={JSON.stringify(detailQuery?.data?.rules)}
                                 isSaving={createPlaylistMutation?.isLoading}
+                                key={JSON.stringify(detailQuery?.data?.rules)}
                                 limit={detailQuery?.data?.rules?.limit}
+                                onSave={handleSave}
+                                onSaveAs={handleSaveAs}
                                 playlistId={playlistId}
                                 query={detailQuery?.data?.rules}
                                 sortBy={detailQuery?.data?.rules?.sort || SongListSort.ALBUM}
                                 sortOrder={detailQuery?.data?.rules?.order || 'asc'}
-                                onSave={handleSave}
-                                onSaveAs={handleSaveAs}
                             />
                         )}
-                    </Paper>
-                </Box>
+                    </Box>
+                </motion.div>
             )}
             <PlaylistDetailSongListContent
                 songs={

@@ -1,12 +1,14 @@
-import { Group, Stack } from '@mantine/core';
-import { Select } from '/@/renderer/components/select';
-import { AnimatePresence, motion } from 'framer-motion';
-import { RiAddFill, RiAddLine, RiDeleteBinFill, RiMore2Line, RiRestartLine } from 'react-icons/ri';
-import { Button } from '/@/renderer/components/button';
-import { DropdownMenu } from '/@/renderer/components/dropdown-menu';
-import { QueryBuilderOption } from '/@/renderer/components/query-builder/query-builder-option';
-import { QueryBuilderGroup, QueryBuilderRule } from '/@/renderer/types';
+import { AnimatePresence, motion } from 'motion/react';
+
 import i18n from '/@/i18n/i18n';
+import { QueryBuilderOption } from '/@/renderer/components/query-builder/query-builder-option';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { DropdownMenu } from '/@/shared/components/dropdown-menu/dropdown-menu';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { Select } from '/@/shared/components/select/select';
+import { Stack } from '/@/shared/components/stack/stack';
+import { QueryBuilderGroup, QueryBuilderRule } from '/@/shared/types/types';
 
 const FILTER_GROUP_OPTIONS_DATA = [
     {
@@ -63,22 +65,22 @@ interface QueryBuilderProps {
 
 export const QueryBuilder = ({
     data,
+    filters,
+    groupIndex,
     level,
     onAddRule,
-    onDeleteRuleGroup,
-    onDeleteRule,
     onAddRuleGroup,
-    onChangeType,
     onChangeField,
-    operators,
     onChangeOperator,
+    onChangeType,
     onChangeValue,
     onClearFilters,
+    onDeleteRule,
+    onDeleteRuleGroup,
     onResetFilters,
+    operators,
     playlists,
-    groupIndex,
     uniqueId,
-    filters,
 }: QueryBuilderProps) => {
     const handleAddRule = () => {
         onAddRule({ groupIndex, level });
@@ -92,46 +94,44 @@ export const QueryBuilder = ({
         onDeleteRuleGroup({ groupIndex, level, uniqueId });
     };
 
-    const handleChangeType = (value: string | null) => {
+    const handleChangeType = (value: null | string) => {
         onChangeType({ groupIndex, level, value });
     };
 
     return (
         <Stack
+            gap="sm"
             ml={`${level * 10}px`}
-            spacing="sm"
         >
-            <Group spacing="sm">
+            <Group gap="sm">
                 <Select
                     data={FILTER_GROUP_OPTIONS_DATA}
                     maxWidth={175}
+                    onChange={handleChangeType}
                     size="sm"
                     value={data.type}
                     width="20%"
-                    onChange={handleChangeType}
                 />
-                <Button
-                    px={5}
-                    size="sm"
-                    tooltip={{ label: 'Add rule' }}
-                    variant="default"
+                <ActionIcon
+                    icon="add"
                     onClick={handleAddRule}
-                >
-                    <RiAddLine size={20} />
-                </Button>
+                    size="sm"
+                    variant="subtle"
+                />
                 <DropdownMenu position="bottom-start">
                     <DropdownMenu.Target>
-                        <Button
-                            p={0}
+                        <ActionIcon
+                            icon="ellipsisVertical"
                             size="sm"
+                            style={{
+                                padding: 0,
+                            }}
                             variant="subtle"
-                        >
-                            <RiMore2Line size={20} />
-                        </Button>
+                        />
                     </DropdownMenu.Target>
                     <DropdownMenu.Dropdown>
                         <DropdownMenu.Item
-                            icon={<RiAddFill />}
+                            leftSection={<Icon icon="add" />}
                             onClick={handleAddRuleGroup}
                         >
                             Add rule group
@@ -139,7 +139,7 @@ export const QueryBuilder = ({
 
                         {level > 0 && (
                             <DropdownMenu.Item
-                                icon={<RiDeleteBinFill />}
+                                leftSection={<Icon icon="delete" />}
                                 onClick={handleDeleteRuleGroup}
                             >
                                 Remove rule group
@@ -149,15 +149,25 @@ export const QueryBuilder = ({
                             <>
                                 <DropdownMenu.Divider />
                                 <DropdownMenu.Item
-                                    $danger
-                                    icon={<RiRestartLine color="var(--danger-color)" />}
+                                    isDanger
+                                    leftSection={
+                                        <Icon
+                                            color="error"
+                                            icon="refresh"
+                                        />
+                                    }
                                     onClick={onResetFilters}
                                 >
                                     Reset to default
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Item
-                                    $danger
-                                    icon={<RiDeleteBinFill color="var(--danger-color)" />}
+                                    isDanger
+                                    leftSection={
+                                        <Icon
+                                            color="error"
+                                            icon="delete"
+                                        />
+                                    }
                                     onClick={onClearFilters}
                                 >
                                     Clear filters
@@ -170,10 +180,10 @@ export const QueryBuilder = ({
             <AnimatePresence initial={false}>
                 {data?.rules?.map((rule: QueryBuilderRule) => (
                     <motion.div
-                        key={rule.uniqueId}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -25 }}
                         initial={{ opacity: 0, x: -25 }}
+                        key={rule.uniqueId}
                         transition={{ duration: 0.2, ease: 'easeInOut' }}
                     >
                         <QueryBuilderOption
@@ -182,12 +192,12 @@ export const QueryBuilder = ({
                             groupIndex={groupIndex || []}
                             level={level}
                             noRemove={data?.rules?.length === 1}
-                            operators={operators}
-                            selectData={playlists}
                             onChangeField={onChangeField}
                             onChangeOperator={onChangeOperator}
                             onChangeValue={onChangeValue}
                             onDeleteRule={onDeleteRule}
+                            operators={operators}
+                            selectData={playlists}
                         />
                     </motion.div>
                 ))}
@@ -196,10 +206,10 @@ export const QueryBuilder = ({
                 <AnimatePresence initial={false}>
                     {data.group?.map((group: QueryBuilderGroup, index: number) => (
                         <motion.div
-                            key={group.uniqueId}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -25 }}
                             initial={{ opacity: 0, x: -25 }}
+                            key={group.uniqueId}
                             transition={{ duration: 0.2, ease: 'easeInOut' }}
                         >
                             <QueryBuilder
@@ -207,9 +217,6 @@ export const QueryBuilder = ({
                                 filters={filters}
                                 groupIndex={[...(groupIndex || []), index]}
                                 level={level + 1}
-                                operators={operators}
-                                playlists={playlists}
-                                uniqueId={group.uniqueId}
                                 onAddRule={onAddRule}
                                 onAddRuleGroup={onAddRuleGroup}
                                 onChangeField={onChangeField}
@@ -220,6 +227,9 @@ export const QueryBuilder = ({
                                 onDeleteRule={onDeleteRule}
                                 onDeleteRuleGroup={onDeleteRuleGroup}
                                 onResetFilters={onResetFilters}
+                                operators={operators}
+                                playlists={playlists}
+                                uniqueId={group.uniqueId}
                             />
                         </motion.div>
                     ))}

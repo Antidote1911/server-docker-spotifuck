@@ -1,12 +1,21 @@
-import { Group, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { CreatePlaylistBody, CreatePlaylistResponse, ServerType } from '/@/renderer/api/types';
-import { Button, Switch, TextInput, toast } from '/@/renderer/components';
+import { useTranslation } from 'react-i18next';
+
 import { useCreatePlaylist } from '/@/renderer/features/playlists/mutations/create-playlist-mutation';
 import { useCurrentServer } from '/@/renderer/store';
-import { useTranslation } from 'react-i18next';
-import { ServerFeature } from '/@/renderer/api/features-types';
-import { hasFeature } from '/@/renderer/api/utils';
+import { hasFeature } from '/@/shared/api/utils';
+import { Button } from '/@/shared/components/button/button';
+import { Group } from '/@/shared/components/group/group';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Switch } from '/@/shared/components/switch/switch';
+import { TextInput } from '/@/shared/components/text-input/text-input';
+import { toast } from '/@/shared/components/toast/toast';
+import {
+    CreatePlaylistBody,
+    CreatePlaylistResponse,
+    ServerType,
+} from '/@/shared/types/domain-types';
+import { ServerFeature } from '/@/shared/types/features-types';
 
 interface SaveAsPlaylistFormProps {
     body: Partial<CreatePlaylistBody>;
@@ -17,9 +26,9 @@ interface SaveAsPlaylistFormProps {
 
 export const SaveAsPlaylistForm = ({
     body,
-    serverId,
-    onSuccess,
     onCancel,
+    onSuccess,
+    serverId,
 }: SaveAsPlaylistFormProps) => {
     const { t } = useTranslation();
     const mutation = useCreatePlaylist({});
@@ -68,11 +77,11 @@ export const SaveAsPlaylistForm = ({
             <Stack>
                 <TextInput
                     data-autofocus
-                    required
                     label={t('form.createPlaylist.input', {
                         context: 'name',
                         postProcess: 'titleCase',
                     })}
+                    required
                     {...form.getInputProps('name')}
                 />
                 {server?.type === ServerType.NAVIDROME && (
@@ -93,10 +102,10 @@ export const SaveAsPlaylistForm = ({
                         {...form.getInputProps('public', { type: 'checkbox' })}
                     />
                 )}
-                <Group position="right">
+                <Group justify="flex-end">
                     <Button
-                        variant="subtle"
                         onClick={onCancel}
+                        variant="subtle"
                     >
                         {t('common.cancel', { postProcess: 'titleCase' })}
                     </Button>

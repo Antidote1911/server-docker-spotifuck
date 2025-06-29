@@ -1,24 +1,12 @@
-import { useMemo } from 'react';
 import { ColDef, RowDoubleClickedEvent } from '@ag-grid-community/core';
-import { Box, Grid, Group, Stack } from '@mantine/core';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaLastfmSquare } from 'react-icons/fa';
-import { RiHeartFill, RiHeartLine, RiMoreFill } from 'react-icons/ri';
-import { SiMusicbrainz } from 'react-icons/si';
 import { generatePath, useParams } from 'react-router';
 import { createSearchParams, Link } from 'react-router-dom';
-import styled from 'styled-components';
-import {
-    Album,
-    AlbumArtist,
-    AlbumListSort,
-    LibraryItem,
-    QueueSong,
-    ServerType,
-    SortOrder,
-} from '/@/renderer/api/types';
-import { Button, Spoiler, TextTitle } from '/@/renderer/components';
-import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel';
+
+import styles from './album-artist-detail-content.module.css';
+
+import { MemoizedSwiperGridCarousel } from '/@/renderer/components/grid-carousel/grid-carousel';
 import { getColumnDefs, VirtualTable } from '/@/renderer/components/virtual-table';
 import { useAlbumList } from '/@/renderer/features/albums/queries/album-list-query';
 import { useAlbumArtistDetail } from '/@/renderer/features/artists/queries/album-artist-detail-query';
@@ -35,29 +23,28 @@ import { usePlayQueueAdd } from '/@/renderer/features/player';
 import { PlayButton, useCreateFavorite, useDeleteFavorite } from '/@/renderer/features/shared';
 import { LibraryBackgroundOverlay } from '/@/renderer/features/shared/components/library-background-overlay';
 import { useContainerQuery } from '/@/renderer/hooks';
+import { useGenreRoute } from '/@/renderer/hooks/use-genre-route';
 import { AppRoute } from '/@/renderer/router/routes';
 import { ArtistItem, useCurrentServer } from '/@/renderer/store';
 import { useGeneralSettings, usePlayButtonBehavior } from '/@/renderer/store/settings.store';
-import { CardRow, Play, TableColumn } from '/@/renderer/types';
 import { sanitize } from '/@/renderer/utils/sanitize';
-import { useGenreRoute } from '/@/renderer/hooks/use-genre-route';
-
-const ContentContainer = styled.div`
-    position: relative;
-    z-index: 0;
-`;
-
-const DetailContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    padding: 1rem 2rem 5rem;
-    overflow: hidden;
-
-    .ag-theme-alpine-dark {
-        --ag-header-background-color: rgb(0 0 0 / 0%) !important;
-    }
-`;
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Button } from '/@/shared/components/button/button';
+import { Grid } from '/@/shared/components/grid/grid';
+import { Group } from '/@/shared/components/group/group';
+import { Spoiler } from '/@/shared/components/spoiler/spoiler';
+import { Stack } from '/@/shared/components/stack/stack';
+import { TextTitle } from '/@/shared/components/text-title/text-title';
+import {
+    Album,
+    AlbumArtist,
+    AlbumListSort,
+    LibraryItem,
+    QueueSong,
+    ServerType,
+    SortOrder,
+} from '/@/shared/types/domain-types';
+import { CardRow, Play, TableColumn } from '/@/shared/types/types';
 
 interface AlbumArtistDetailContentProps {
     background?: string;
@@ -65,8 +52,12 @@ interface AlbumArtistDetailContentProps {
 
 export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailContentProps) => {
     const { t } = useTranslation();
-    const { artistItems, externalLinks } = useGeneralSettings();
-    const { albumArtistId } = useParams() as { albumArtistId: string };
+    const { artistItems, externalLinks, lastFM, musicBrainz } = useGeneralSettings();
+    const { albumArtistId, artistId } = useParams() as {
+        albumArtistId?: string;
+        artistId?: string;
+    };
+    const routeId = (artistId || albumArtistId) as string;
     const cq = useContainerQuery();
     const handlePlayQueueAdd = usePlayQueueAdd();
     const server = useCurrentServer();
@@ -85,24 +76,24 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
     }, [artistItems]);
 
     const detailQuery = useAlbumArtistDetail({
-        query: { id: albumArtistId },
+        query: { id: routeId },
         serverId: server?.id,
     });
 
     const artistDiscographyLink = `${generatePath(
         AppRoute.LIBRARY_ALBUM_ARTISTS_DETAIL_DISCOGRAPHY,
         {
-            albumArtistId,
+            albumArtistId: routeId,
         },
     )}?${createSearchParams({
-        artistId: albumArtistId,
+        artistId: routeId,
         artistName: detailQuery?.data?.name || '',
     })}`;
 
     const artistSongsLink = `${generatePath(AppRoute.LIBRARY_ALBUM_ARTISTS_DETAIL_SONGS, {
-        albumArtistId,
+        albumArtistId: routeId,
     })}?${createSearchParams({
-        artistId: albumArtistId,
+        artistId: routeId,
         artistName: detailQuery?.data?.name || '',
     })}`;
 
@@ -111,7 +102,7 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
             enabled: enabledItem.recentAlbums,
         },
         query: {
-            artistIds: [albumArtistId],
+            artistIds: [routeId],
             limit: 15,
             sortBy: AlbumListSort.RELEASE_DATE,
             sortOrder: SortOrder.DESC,
@@ -125,7 +116,7 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
             enabled: enabledItem.compilations && server?.type !== ServerType.SUBSONIC,
         },
         query: {
-            artistIds: [albumArtistId],
+            artistIds: [routeId],
             compilation: true,
             limit: 15,
             sortBy: AlbumListSort.RELEASE_DATE,
@@ -141,7 +132,7 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
         },
         query: {
             artist: detailQuery?.data?.name || '',
-            artistId: albumArtistId,
+            artistId: routeId,
         },
         serverId: server?.id,
     });
@@ -211,21 +202,20 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                 title: (
                     <Group align="flex-end">
                         <TextTitle
+                            fw={700}
                             order={2}
-                            weight={700}
                         >
                             {t('page.albumArtistDetail.recentReleases', {
                                 postProcess: 'sentenceCase',
                             })}
                         </TextTitle>
                         <Button
-                            compact
-                            uppercase
                             component={Link}
+                            size="compact-md"
                             to={artistDiscographyLink}
                             variant="subtle"
                         >
-                            {t('page.albumArtistDetail.viewDiscography')}
+                            {String(t('page.albumArtistDetail.viewDiscography')).toUpperCase()}
                         </Button>
                     </Group>
                 ),
@@ -242,8 +232,8 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                 order: itemOrder.compilations,
                 title: (
                     <TextTitle
+                        fw={700}
                         order={2}
-                        weight={700}
                     >
                         {t('page.albumArtistDetail.appearsOn', { postProcess: 'sentenceCase' })}
                     </TextTitle>
@@ -257,8 +247,8 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                 order: itemOrder.similarArtists,
                 title: (
                     <TextTitle
+                        fw={700}
                         order={2}
-                        weight={700}
                     >
                         {t('page.albumArtistDetail.relatedArtists', {
                             postProcess: 'sentenceCase',
@@ -292,8 +282,8 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
     const handlePlay = async (playType?: Play) => {
         handlePlayQueueAdd?.({
             byItemType: {
-                id: [albumArtistId],
-                type: LibraryItem.ALBUM_ARTIST,
+                id: [routeId],
+                type: albumArtistId ? LibraryItem.ALBUM_ARTIST : LibraryItem.ARTIST,
             },
             playType: playType || playButtonBehavior,
         });
@@ -336,9 +326,15 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
         }
     };
 
+    const albumCount = detailQuery?.data?.albumCount;
+    const artistContextItems =
+        (albumCount ?? 1) > 0
+            ? ARTIST_CONTEXT_MENU_ITEMS
+            : ARTIST_CONTEXT_MENU_ITEMS.filter((item) => !item.id.toLowerCase().includes('play'));
+
     const handleGeneralContextMenu = useHandleGeneralContextMenu(
         LibraryItem.ALBUM_ARTIST,
-        ARTIST_CONTEXT_MENU_ITEMS,
+        artistContextItems,
     );
 
     const topSongs = topSongsQuery?.data?.items?.slice(0, 10);
@@ -358,74 +354,77 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
         detailQuery?.isLoading ||
         (server?.type === ServerType.NAVIDROME && enabledItem.topSongs && topSongsQuery?.isLoading);
 
-    if (isLoading) return <ContentContainer ref={cq.ref} />;
+    if (isLoading)
+        return (
+            <div
+                className={styles.contentContainer}
+                ref={cq.ref}
+            />
+        );
 
     return (
-        <ContentContainer ref={cq.ref}>
-            <LibraryBackgroundOverlay $backgroundColor={background} />
-            <DetailContainer>
-                <Group spacing="md">
-                    <PlayButton onClick={() => handlePlay(playButtonBehavior)} />
-                    <Group spacing="xs">
-                        <Button
-                            compact
+        <div
+            className={styles.contentContainer}
+            ref={cq.ref}
+        >
+            <LibraryBackgroundOverlay backgroundColor={background} />
+            <div className={styles.detailContainer}>
+                <Group gap="md">
+                    <PlayButton
+                        disabled={albumCount === 0}
+                        onClick={() => handlePlay(playButtonBehavior)}
+                    />
+                    <Group gap="xs">
+                        <ActionIcon
+                            icon="favorite"
+                            iconProps={{
+                                fill: detailQuery?.data?.userFavorite ? 'primary' : undefined,
+                            }}
                             loading={
                                 createFavoriteMutation.isLoading || deleteFavoriteMutation.isLoading
                             }
-                            variant="subtle"
                             onClick={handleFavorite}
-                        >
-                            {detailQuery?.data?.userFavorite ? (
-                                <RiHeartFill
-                                    color="red"
-                                    size={20}
-                                />
-                            ) : (
-                                <RiHeartLine size={20} />
-                            )}
-                        </Button>
-                        <Button
-                            compact
-                            variant="subtle"
+                            size="lg"
+                            variant="transparent"
+                        />
+                        <ActionIcon
+                            icon="ellipsisHorizontal"
                             onClick={(e) => {
                                 if (!detailQuery?.data) return;
                                 handleGeneralContextMenu(e, [detailQuery.data!]);
                             }}
-                        >
-                            <RiMoreFill size={20} />
-                        </Button>
+                            size="lg"
+                            variant="transparent"
+                        />
                     </Group>
                 </Group>
-                <Group spacing="md">
+                <Group gap="md">
                     <Button
-                        compact
-                        uppercase
                         component={Link}
+                        size="compact-md"
                         to={artistDiscographyLink}
                         variant="subtle"
                     >
-                        {t('page.albumArtistDetail.viewDiscography')}
+                        {String(t('page.albumArtistDetail.viewDiscography')).toUpperCase()}
                     </Button>
                     <Button
-                        compact
-                        uppercase
                         component={Link}
+                        size="compact-md"
                         to={artistSongsLink}
                         variant="subtle"
                     >
-                        {t('page.albumArtistDetail.viewAllTracks')}
+                        {String(t('page.albumArtistDetail.viewAllTracks')).toUpperCase()}
                     </Button>
                 </Group>
                 {showGenres ? (
-                    <Box component="section">
-                        <Group spacing="sm">
+                    <section>
+                        <Group gap="sm">
                             {detailQuery?.data?.genres?.map((genre) => (
                                 <Button
-                                    key={`genre-${genre.id}`}
-                                    compact
                                     component={Link}
+                                    key={`genre-${genre.id}`}
                                     radius="md"
-                                    size="md"
+                                    size="compact-md"
                                     to={generatePath(genrePath, {
                                         genreId: genre.id,
                                     })}
@@ -435,68 +434,67 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                                 </Button>
                             ))}
                         </Group>
-                    </Box>
+                    </section>
                 ) : null}
-                {externalLinks ? (
-                    <Box component="section">
-                        <Group spacing="sm">
-                            <Button
-                                compact
-                                component="a"
-                                href={`https://www.last.fm/music/${encodeURIComponent(
-                                    detailQuery?.data?.name || '',
-                                )}`}
-                                radius="md"
-                                rel="noopener noreferrer"
-                                size="md"
-                                target="_blank"
-                                tooltip={{
-                                    label: t('action.openIn.lastfm'),
-                                }}
-                                variant="subtle"
-                            >
-                                <FaLastfmSquare size={25} />
-                            </Button>
-                            {mbzId ? (
-                                <Button
-                                    compact
+                {externalLinks && (lastFM || musicBrainz) ? (
+                    <section>
+                        <Group gap="sm">
+                            {lastFM && (
+                                <ActionIcon
+                                    component="a"
+                                    href={`https://www.last.fm/music/${encodeURIComponent(
+                                        detailQuery?.data?.name || '',
+                                    )}`}
+                                    icon="brandLastfm"
+                                    iconProps={{
+                                        fill: 'default',
+                                        size: 'xl',
+                                    }}
+                                    rel="noopener noreferrer"
+                                    target="_blank"
+                                    tooltip={{
+                                        label: t('action.openIn.lastfm'),
+                                    }}
+                                    variant="subtle"
+                                />
+                            )}
+                            {mbzId && musicBrainz ? (
+                                <ActionIcon
                                     component="a"
                                     href={`https://musicbrainz.org/artist/${mbzId}`}
-                                    radius="md"
+                                    icon="brandMusicBrainz"
+                                    iconProps={{
+                                        fill: 'default',
+                                        size: 'xl',
+                                    }}
                                     rel="noopener noreferrer"
-                                    size="md"
                                     target="_blank"
                                     tooltip={{
                                         label: t('action.openIn.musicbrainz'),
                                     }}
                                     variant="subtle"
-                                >
-                                    <SiMusicbrainz size={25} />
-                                </Button>
+                                />
                             ) : null}
                         </Group>
-                    </Box>
+                    </section>
                 ) : null}
-                <Grid>
+                <Grid gutter="xl">
                     {biography ? (
                         <Grid.Col
                             order={itemOrder.biography}
                             span={12}
                         >
-                            <Box
-                                component="section"
-                                maw="1280px"
-                            >
+                            <section style={{ maxWidth: '1280px' }}>
                                 <TextTitle
+                                    fw={700}
                                     order={2}
-                                    weight={700}
                                 >
                                     {t('page.albumArtistDetail.about', {
                                         artist: detailQuery?.data?.name,
                                     })}
                                 </TextTitle>
                                 <Spoiler dangerouslySetInnerHTML={{ __html: biography }} />
-                            </Box>
+                            </section>
                         </Grid.Col>
                     ) : null}
                     {showTopSongs ? (
@@ -504,33 +502,33 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                             order={itemOrder.topSongs}
                             span={12}
                         >
-                            <Box component="section">
+                            <section>
                                 <Group
-                                    noWrap
-                                    position="apart"
+                                    justify="space-between"
+                                    wrap="nowrap"
                                 >
                                     <Group
-                                        noWrap
                                         align="flex-end"
+                                        wrap="nowrap"
                                     >
                                         <TextTitle
+                                            fw={700}
                                             order={2}
-                                            weight={700}
                                         >
                                             {t('page.albumArtistDetail.topSongs', {
                                                 postProcess: 'sentenceCase',
                                             })}
                                         </TextTitle>
                                         <Button
-                                            compact
-                                            uppercase
                                             component={Link}
+                                            size="compact-md"
                                             to={generatePath(
                                                 AppRoute.LIBRARY_ALBUM_ARTISTS_DETAIL_TOP_SONGS,
                                                 {
-                                                    albumArtistId,
+                                                    albumArtistId: routeId,
                                                 },
                                             )}
+                                            uppercase
                                             variant="subtle"
                                         >
                                             {t('page.albumArtistDetail.viewAll', {
@@ -542,26 +540,26 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                                 <VirtualTable
                                     autoFitColumns
                                     autoHeight
+                                    columnDefs={topSongsColumnDefs}
+                                    context={{
+                                        itemType: LibraryItem.SONG,
+                                    }}
                                     deselectOnClickOutside
+                                    enableCellChangeFlash={false}
+                                    getRowId={(data) => data.data.uniqueId}
+                                    onCellContextMenu={handleContextMenu}
+                                    onRowDoubleClicked={handleRowDoubleClick}
+                                    rowData={topSongs}
+                                    rowHeight={60}
+                                    rowSelection="multiple"
                                     shouldUpdateSong
                                     stickyHeader
                                     suppressCellFocus
                                     suppressHorizontalScroll
                                     suppressLoadingOverlay
                                     suppressRowDrag
-                                    columnDefs={topSongsColumnDefs}
-                                    context={{
-                                        itemType: LibraryItem.SONG,
-                                    }}
-                                    enableCellChangeFlash={false}
-                                    getRowId={(data) => data.data.uniqueId}
-                                    rowData={topSongs}
-                                    rowHeight={60}
-                                    rowSelection="multiple"
-                                    onCellContextMenu={handleContextMenu}
-                                    onRowDoubleClicked={handleRowDoubleClick}
                                 />
-                            </Box>
+                            </section>
                         </Grid.Col>
                     ) : null}
 
@@ -573,8 +571,8 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                                 order={carousel.order}
                                 span={12}
                             >
-                                <Box component="section">
-                                    <Stack spacing="xl">
+                                <section>
+                                    <Stack gap="xl">
                                         <MemoizedSwiperGridCarousel
                                             cardRows={
                                                 cardRows[carousel.itemType as keyof typeof cardRows]
@@ -598,11 +596,11 @@ export const AlbumArtistDetailContent = ({ background }: AlbumArtistDetailConten
                                             uniqueId={carousel.uniqueId}
                                         />
                                     </Stack>
-                                </Box>
+                                </section>
                             </Grid.Col>
                         ))}
                 </Grid>
-            </DetailContainer>
-        </ContentContainer>
+            </div>
+        </div>
     );
 };

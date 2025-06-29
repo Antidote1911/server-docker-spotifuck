@@ -1,24 +1,23 @@
-import { useCallback, useMemo, useRef } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
+
 import isEmpty from 'lodash/isEmpty';
-import { useTranslation } from 'react-i18next';
+import { useCallback, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { GenreListSort, LibraryItem, SongListQuery, SortOrder } from '/@/renderer/api/types';
+
+import { VirtualInfiniteGridRef } from '/@/renderer/components/virtual-grid';
 import { ListContext } from '/@/renderer/context/list-context';
 import { useGenreList } from '/@/renderer/features/genres';
 import { usePlayQueueAdd } from '/@/renderer/features/player';
 import { AnimatedPage } from '/@/renderer/features/shared';
 import { SongListContent } from '/@/renderer/features/songs/components/song-list-content';
 import { SongListHeader } from '/@/renderer/features/songs/components/song-list-header';
-import { useCurrentServer, useListFilterByKey } from '/@/renderer/store';
-import { Play } from '/@/renderer/types';
-import { titleCase } from '/@/renderer/utils';
-import { VirtualInfiniteGridRef } from '/@/renderer/components/virtual-grid';
 import { useSongListCount } from '/@/renderer/features/songs/queries/song-list-count-query';
+import { useCurrentServer, useListFilterByKey } from '/@/renderer/store';
+import { GenreListSort, LibraryItem, SongListQuery, SortOrder } from '/@/shared/types/domain-types';
+import { Play } from '/@/shared/types/types';
 
 const TrackListRoute = () => {
-    const { t } = useTranslation();
-    const gridRef = useRef<VirtualInfiniteGridRef | null>(null);
+    const gridRef = useRef<null | VirtualInfiniteGridRef>(null);
     const tableRef = useRef<AgGridReactType | null>(null);
     const server = useCurrentServer();
     const [searchParams] = useSearchParams();
@@ -121,11 +120,7 @@ const TrackListRoute = () => {
     }, [albumArtistId, customFilters, genreId, handlePlay, pageKey]);
 
     const artist = searchParams.get('artistName');
-    const title = artist
-        ? t('page.trackList.artistTracks', { artist })
-        : genreId
-          ? t('page.trackList.genreTracks', { genre: titleCase(genreTitle) })
-          : undefined;
+    const title = artist ? artist : genreId ? genreTitle : undefined;
 
     return (
         <AnimatedPage>

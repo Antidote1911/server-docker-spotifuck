@@ -1,16 +1,11 @@
-import { useEffect } from 'react';
-import { Flex, Group } from '@mantine/core';
 import { useHotkeys, useMediaQuery } from '@mantine/hooks';
 import isElectron from 'is-electron';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineQueueList } from 'react-icons/hi2';
-import {
-    RiVolumeUpFill,
-    RiVolumeDownFill,
-    RiVolumeMuteFill,
-    RiHeartLine,
-    RiHeartFill,
-} from 'react-icons/ri';
+
+import { PlayerbarSlider } from '/@/renderer/features/player/components/playerbar-slider';
+import { useRightControls } from '/@/renderer/features/player/hooks/use-right-controls';
+import { useCreateFavorite, useDeleteFavorite, useSetRating } from '/@/renderer/features/shared';
 import {
     useAppStoreActions,
     useCurrentServer,
@@ -23,16 +18,16 @@ import {
     useSpeed,
     useVolume,
 } from '/@/renderer/store';
-import { useRightControls } from '../hooks/use-right-controls';
-import { PlayerButton } from './player-button';
-import { LibraryItem, QueueSong, ServerType, Song } from '/@/renderer/api/types';
-import { useCreateFavorite, useDeleteFavorite, useSetRating } from '/@/renderer/features/shared';
-import { DropdownMenu, Rating } from '/@/renderer/components';
-import { PlayerbarSlider } from '/@/renderer/features/player/components/playerbar-slider';
-import { Slider } from '/@/renderer/components/slider';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { DropdownMenu } from '/@/shared/components/dropdown-menu/dropdown-menu';
+import { Flex } from '/@/shared/components/flex/flex';
+import { Group } from '/@/shared/components/group/group';
+import { Rating } from '/@/shared/components/rating/rating';
+import { Slider } from '/@/shared/components/slider/slider';
+import { LibraryItem, QueueSong, ServerType, Song } from '/@/shared/types/domain-types';
 
-const ipc = isElectron() ? window.electron.ipc : null;
-const remote = isElectron() ? window.electron.remote : null;
+const ipc = isElectron() ? window.api.ipc : null;
+const remote = isElectron() ? window.api.remote : null;
 
 export const RightControls = () => {
     const { t } = useTranslation();
@@ -46,12 +41,12 @@ export const RightControls = () => {
     const { rightExpanded: isQueueExpanded } = useSidebarStore();
     const { bindings } = useHotkeySettings();
     const {
-        handleVolumeSlider,
-        handleVolumeWheel,
         handleMute,
-        handleVolumeDown,
-        handleVolumeUp,
         handleSpeed,
+        handleVolumeDown,
+        handleVolumeSlider,
+        handleVolumeUp,
+        handleVolumeWheel,
     } = useRightControls();
 
     const speed = useSpeed();
@@ -208,32 +203,36 @@ export const RightControls = () => {
             <Group h="calc(100% / 3)">
                 {showRating && (
                     <Rating
-                        size="sm"
-                        value={currentSong?.userRating || 0}
                         onChange={handleUpdateRating}
+                        size="xs"
+                        value={currentSong?.userRating || 0}
                     />
                 )}
             </Group>
             <Group
-                noWrap
                 align="center"
-                spacing="xs"
+                gap="xs"
+                wrap="nowrap"
             >
                 <DropdownMenu
-                    withArrow
                     arrowOffset={12}
                     offset={0}
                     position="top-end"
                     width={425}
+                    withArrow
                 >
                     <DropdownMenu.Target>
-                        <PlayerButton
-                            icon={<>{speed} x</>}
+                        <ActionIcon
+                            icon="mediaSpeed"
+                            iconProps={{
+                                size: 'lg',
+                            }}
+                            size="sm"
                             tooltip={{
                                 label: t('player.playbackSpeed', { postProcess: 'sentenceCase' }),
-                                openDelay: 500,
+                                openDelay: 0,
                             }}
-                            variant="secondary"
+                            variant="subtle"
                         />
                     </DropdownMenu.Target>
                     <DropdownMenu.Dropdown>
@@ -248,6 +247,8 @@ export const RightControls = () => {
                             ]}
                             max={1.5}
                             min={0.5}
+                            onChange={handleSpeed}
+                            onDoubleClick={() => handleSpeed(1)}
                             step={0.01}
                             styles={{
                                 markLabel: {
@@ -258,83 +259,64 @@ export const RightControls = () => {
                                 },
                             }}
                             value={speed}
-                            onChange={handleSpeed}
-                            onDoubleClick={() => handleSpeed(1)}
                         />
                     </DropdownMenu.Dropdown>
                 </DropdownMenu>
-                <PlayerButton
-                    icon={
-                        currentSong?.userFavorite ? (
-                            <RiHeartFill
-                                color="var(--primary-color)"
-                                size="1.1rem"
-                            />
-                        ) : (
-                            <RiHeartLine size="1.1rem" />
-                        )
-                    }
-                    sx={{
-                        svg: {
-                            fill: !currentSong?.userFavorite
-                                ? undefined
-                                : 'var(--primary-color) !important',
-                        },
+                <ActionIcon
+                    icon="favorite"
+                    iconProps={{
+                        fill: currentSong?.userFavorite ? 'primary' : undefined,
+                        size: 'lg',
                     }}
+                    onClick={() => handleToggleFavorite(currentSong)}
+                    size="sm"
                     tooltip={{
                         label: currentSong?.userFavorite
                             ? t('player.unfavorite', { postProcess: 'titleCase' })
                             : t('player.favorite', { postProcess: 'titleCase' }),
-                        openDelay: 500,
+                        openDelay: 0,
                     }}
-                    variant="secondary"
-                    onClick={() => handleToggleFavorite(currentSong)}
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon={isQueueExpanded ? 'panelRightClose' : 'panelRightOpen'}
+                    iconProps={{
+                        size: 'lg',
+                    }}
+                    onClick={handleToggleQueue}
+                    size="sm"
+                    tooltip={{
+                        label: t('player.viewQueue', { postProcess: 'titleCase' }),
+                        openDelay: 0,
+                    }}
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon={muted ? 'volumeMute' : volume > 50 ? 'volumeMax' : 'volumeNormal'}
+                    iconProps={{
+                        color: muted ? 'muted' : undefined,
+                        size: 'xl',
+                    }}
+                    onClick={handleMute}
+                    onWheel={handleVolumeWheel}
+                    size="sm"
+                    tooltip={{
+                        label: muted ? t('player.muted', { postProcess: 'titleCase' }) : volume,
+                        openDelay: 0,
+                    }}
+                    variant="subtle"
                 />
                 {!isMinWidth ? (
-                    <PlayerButton
-                        icon={<HiOutlineQueueList size="1.1rem" />}
-                        tooltip={{
-                            label: t('player.viewQueue', { postProcess: 'titleCase' }),
-                            openDelay: 500,
-                        }}
-                        variant="secondary"
-                        onClick={handleToggleQueue}
+                    <PlayerbarSlider
+                        max={100}
+                        min={0}
+                        onChange={handleVolumeSlider}
+                        onWheel={handleVolumeWheel}
+                        size={6}
+                        value={volume}
+                        w={volumeWidth}
                     />
                 ) : null}
-                <Group
-                    noWrap
-                    spacing="xs"
-                >
-                    <PlayerButton
-                        icon={
-                            muted ? (
-                                <RiVolumeMuteFill size="1.2rem" />
-                            ) : volume > 50 ? (
-                                <RiVolumeUpFill size="1.2rem" />
-                            ) : (
-                                <RiVolumeDownFill size="1.2rem" />
-                            )
-                        }
-                        tooltip={{
-                            label: muted ? t('player.muted', { postProcess: 'titleCase' }) : volume,
-                            openDelay: 500,
-                        }}
-                        variant="secondary"
-                        onClick={handleMute}
-                        onWheel={handleVolumeWheel}
-                    />
-                    {!isMinWidth ? (
-                        <PlayerbarSlider
-                            max={100}
-                            min={0}
-                            size={6}
-                            value={volume}
-                            w={volumeWidth}
-                            onChange={handleVolumeSlider}
-                            onWheel={handleVolumeWheel}
-                        />
-                    ) : null}
-                </Group>
             </Group>
             <Group h="calc(100% / 3)" />
         </Flex>

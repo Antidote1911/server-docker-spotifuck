@@ -1,11 +1,16 @@
 import isElectron from 'is-electron';
-import { SettingsSection } from '/@/renderer/features/settings/components/settings-section';
-import { useRemoteSettings, useSettingsStoreActions } from '/@/renderer/store';
-import { NumberInput, Switch, Text, TextInput, toast } from '/@/renderer/components';
 import debounce from 'lodash/debounce';
 import { useTranslation } from 'react-i18next';
 
-const remote = isElectron() ? window.electron.remote : null;
+import { SettingsSection } from '/@/renderer/features/settings/components/settings-section';
+import { useRemoteSettings, useSettingsStoreActions } from '/@/renderer/store';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Switch } from '/@/shared/components/switch/switch';
+import { TextInput } from '/@/shared/components/text-input/text-input';
+import { Text } from '/@/shared/components/text/text';
+import { toast } from '/@/shared/components/toast/toast';
+
+const remote = isElectron() ? window.api.remote : null;
 
 export const RemoteSettings = () => {
     const { t } = useTranslation();
@@ -69,8 +74,8 @@ export const RemoteSettings = () => {
             ),
             description: (
                 <Text
-                    $noSelect
-                    $secondary
+                    isMuted
+                    isNoSelect
                     size="sm"
                 >
                     {t('setting.enableRemote', {
@@ -93,12 +98,12 @@ export const RemoteSettings = () => {
             control: (
                 <NumberInput
                     max={65535}
-                    value={settings.port}
                     onBlur={async (e) => {
                         if (!e) return;
                         const port = Number(e.currentTarget.value);
                         await debouncedChangeRemotePort(port);
                     }}
+                    value={settings.port}
                 />
             ),
             description: t('setting.remotePort', {

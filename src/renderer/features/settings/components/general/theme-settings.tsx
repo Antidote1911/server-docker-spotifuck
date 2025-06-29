@@ -1,21 +1,25 @@
-import { ColorInput, Stack } from '@mantine/core';
-import { Switch, Select } from '/@/renderer/components';
-import {
-    SettingsSection,
-    SettingOption,
-} from '/@/renderer/features/settings/components/settings-section';
-import { THEME_DATA } from '/@/renderer/hooks';
-import { useGeneralSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
-import { AppTheme } from '/@/renderer/themes/types';
 import isElectron from 'is-electron';
 import { useTranslation } from 'react-i18next';
 
-const localSettings = isElectron() ? window.electron.localSettings : null;
+import {
+    SettingOption,
+    SettingsSection,
+} from '/@/renderer/features/settings/components/settings-section';
+import { useGeneralSettings, useSettingsStoreActions } from '/@/renderer/store/settings.store';
+import { THEME_DATA, useSetColorScheme } from '/@/renderer/themes/use-app-theme';
+import { ColorInput } from '/@/shared/components/color-input/color-input';
+import { Select } from '/@/shared/components/select/select';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Switch } from '/@/shared/components/switch/switch';
+import { AppTheme } from '/@/shared/themes/app-theme-types';
+
+const localSettings = isElectron() ? window.api.localSettings : null;
 
 export const ThemeSettings = () => {
     const { t } = useTranslation();
     const settings = useGeneralSettings();
     const { setSettings } = useSettingsStoreActions();
+    const { setColorScheme } = useSetColorScheme();
 
     const themeOptions: SettingOption[] = [
         {
@@ -29,6 +33,7 @@ export const ThemeSettings = () => {
                                 followSystemTheme: e.currentTarget.checked,
                             },
                         });
+
                         if (localSettings) {
                             localSettings.themeSet(
                                 e.currentTarget.checked
@@ -55,16 +60,20 @@ export const ThemeSettings = () => {
                     defaultValue={settings.theme}
                     onChange={(e) => {
                         const theme = e as AppTheme;
+
                         setSettings({
                             general: {
                                 ...settings,
                                 theme,
                             },
                         });
+
+                        const colorScheme = theme === AppTheme.DEFAULT_DARK ? 'dark' : 'light';
+
+                        setColorScheme(colorScheme);
+
                         if (localSettings) {
-                            localSettings.themeSet(
-                                theme === AppTheme.DEFAULT_DARK ? 'dark' : 'light',
-                            );
+                            localSettings.themeSet(colorScheme);
                         }
                     }}
                 />
@@ -126,6 +135,14 @@ export const ThemeSettings = () => {
                     <ColorInput
                         defaultValue={settings.accent}
                         format="rgb"
+                        onChangeEnd={(e) => {
+                            setSettings({
+                                general: {
+                                    ...settings,
+                                    accent: e,
+                                },
+                            });
+                        }}
                         swatches={[
                             'rgb(53, 116, 252)',
                             'rgb(240, 170, 22)',
@@ -135,14 +152,6 @@ export const ThemeSettings = () => {
                         ]}
                         swatchesPerRow={5}
                         withEyeDropper={false}
-                        onChangeEnd={(e) => {
-                            setSettings({
-                                general: {
-                                    ...settings,
-                                    accent: e,
-                                },
-                            });
-                        }}
                     />
                 </Stack>
             ),

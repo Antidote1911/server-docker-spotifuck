@@ -1,9 +1,9 @@
-import { lazy } from 'react';
-import { Tabs } from '/@/renderer/components';
-import { useSettingsStore, useSettingsStoreActions } from '/@/renderer/store/settings.store';
 import isElectron from 'is-electron';
+import { lazy } from 'react';
 import { useTranslation } from 'react-i18next';
-import styled from 'styled-components';
+
+import { useSettingsStore, useSettingsStoreActions } from '/@/renderer/store/settings.store';
+import { Tabs } from '/@/shared/components/tabs/tabs';
 
 const GeneralTab = lazy(() =>
     import('/@/renderer/features/settings/components/general/general-tab').then((module) => ({
@@ -35,26 +35,19 @@ const AdvancedTab = lazy(() =>
     })),
 );
 
-const TabContainer = styled.div`
-    width: 100%;
-    height: 100%;
-    padding: 1rem;
-    overflow: scroll;
-`;
-
 export const SettingsContent = () => {
     const { t } = useTranslation();
     const currentTab = useSettingsStore((state) => state.tab);
     const { setSettings } = useSettingsStoreActions();
 
     return (
-        <TabContainer>
+        <div style={{ height: '100%', overflow: 'scroll', padding: '1rem', width: '100%' }}>
             <Tabs
                 keepMounted={false}
+                onChange={(e) => e && setSettings({ tab: e })}
                 orientation="horizontal"
                 value={currentTab}
                 variant="default"
-                onTabChange={(e) => e && setSettings({ tab: e })}
             >
                 <Tabs.List>
                     <Tabs.Tab value="general">
@@ -93,6 +86,6 @@ export const SettingsContent = () => {
                     <AdvancedTab />
                 </Tabs.Panel>
             </Tabs>
-        </TabContainer>
+        </div>
     );
 };

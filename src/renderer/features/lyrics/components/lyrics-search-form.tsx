@@ -1,40 +1,33 @@
-import { useMemo } from 'react';
-import { Divider, Group, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDebouncedValue } from '@mantine/hooks';
 import { openModal } from '@mantine/modals';
 import orderBy from 'lodash/orderBy';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import styled from 'styled-components';
+
+import styles from './lyrics-search-form.module.css';
+
+import i18n from '/@/i18n/i18n';
+import { useLyricSearch } from '/@/renderer/features/lyrics/queries/lyric-search-query';
+import { Divider } from '/@/shared/components/divider/divider';
+import { Group } from '/@/shared/components/group/group';
+import { ScrollArea } from '/@/shared/components/scroll-area/scroll-area';
+import { Spinner } from '/@/shared/components/spinner/spinner';
+import { Stack } from '/@/shared/components/stack/stack';
+import { TextInput } from '/@/shared/components/text-input/text-input';
+import { Text } from '/@/shared/components/text/text';
 import {
     InternetProviderLyricSearchResponse,
     LyricSource,
     LyricsOverride,
-} from '../../../api/types';
-import { useLyricSearch } from '../queries/lyric-search-query';
-import { ScrollArea, Spinner, Text, TextInput } from '/@/renderer/components';
-import i18n from '/@/i18n/i18n';
-
-const SearchItem = styled.button`
-    all: unset;
-    box-sizing: border-box !important;
-    padding: 0.5rem;
-    cursor: pointer;
-    border-radius: 5px;
-
-    &:hover,
-    &:focus-visible {
-        color: var(--btn-default-fg-hover);
-        background: var(--btn-default-bg-hover);
-    }
-`;
+} from '/@/shared/types/domain-types';
 
 interface SearchResultProps {
     data: InternetProviderLyricSearchResponse;
     onClick?: () => void;
 }
 const SearchResult = ({ data, onClick }: SearchResultProps) => {
-    const { artist, name, source, score, id } = data;
+    const { artist, id, name, score, source } = data;
 
     const percentageScore = useMemo(() => {
         if (!score) return 0;
@@ -45,28 +38,31 @@ const SearchResult = ({ data, onClick }: SearchResultProps) => {
         source === LyricSource.GENIUS ? id.replace(/^((http[s]?|ftp):\/)?\/?([^:/\s]+)/g, '') : id;
 
     return (
-        <SearchItem onClick={onClick}>
+        <button
+            className={styles.searchItem}
+            onClick={onClick}
+        >
             <Group
-                noWrap
-                position="apart"
+                justify="space-between"
+                wrap="nowrap"
             >
                 <Stack
+                    gap={0}
                     maw="65%"
-                    spacing={0}
                 >
                     <Text
+                        fw={600}
                         size="md"
-                        weight={600}
                     >
                         {name}
                     </Text>
-                    <Text $secondary>{artist}</Text>
+                    <Text isMuted>{artist}</Text>
                     <Group
-                        noWrap
-                        spacing="sm"
+                        gap="sm"
+                        wrap="nowrap"
                     >
                         <Text
-                            $secondary
+                            isMuted
                             size="sm"
                         >
                             {[source, cleanId].join(' — ')}
@@ -75,7 +71,7 @@ const SearchResult = ({ data, onClick }: SearchResultProps) => {
                 </Stack>
                 <Text>{percentageScore}%</Text>
             </Group>
-        </SearchItem>
+        </button>
     );
 };
 
@@ -140,17 +136,16 @@ export const LyricsSearchForm = ({ artist, name, onSearchOverride }: LyricSearch
                 <Spinner container />
             ) : (
                 <ScrollArea
-                    offsetScrollbars
-                    h={400}
-                    pr="1rem"
-                    type="auto"
-                    w="100%"
+                    style={{
+                        height: '400px',
+                        paddingRight: '1rem',
+                    }}
                 >
-                    <Stack spacing="md">
+                    <Stack gap="md">
                         {searchResults.map((result) => (
                             <SearchResult
-                                key={`${result.source}-${result.id}`}
                                 data={result}
+                                key={`${result.source}-${result.id}`}
                                 onClick={() => {
                                     onSearchOverride?.({
                                         artist: result.artist,

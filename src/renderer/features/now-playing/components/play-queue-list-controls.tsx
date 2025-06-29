@@ -1,43 +1,37 @@
-import type { MutableRefObject } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { Group } from '@mantine/core';
-import { Button, Popover } from '/@/renderer/components';
+import type { MutableRefObject } from 'react';
+
 import isElectron from 'is-electron';
 import { useTranslation } from 'react-i18next';
-import {
-    RiArrowDownLine,
-    RiArrowGoForwardLine,
-    RiArrowUpLine,
-    RiShuffleLine,
-    RiDeleteBinLine,
-    RiListSettingsLine,
-    RiEraserLine,
-} from 'react-icons/ri';
-import { Song } from '/@/renderer/api/types';
-import { usePlayerControls, useQueueControls } from '/@/renderer/store';
-import { PlaybackType, TableType } from '/@/renderer/types';
-import { usePlaybackType } from '/@/renderer/store/settings.store';
-import { usePlayerStore, useSetCurrentTime } from '../../../store/player.store';
+
 import { TableConfigDropdown } from '/@/renderer/components/virtual-table';
 import { updateSong } from '/@/renderer/features/player/update-remote-song';
+import { usePlayerControls, useQueueControls } from '/@/renderer/store';
+import { usePlayerStore, useSetCurrentTime } from '/@/renderer/store/player.store';
+import { usePlaybackType } from '/@/renderer/store/settings.store';
 import { setQueue, setQueueNext } from '/@/renderer/utils/set-transcoded-queue-data';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Group } from '/@/shared/components/group/group';
+import { Popover } from '/@/shared/components/popover/popover';
+import { Song } from '/@/shared/types/domain-types';
+import { PlaybackType, TableType } from '/@/shared/types/types';
 
-const mpvPlayer = isElectron() ? window.electron.mpvPlayer : null;
+const mpvPlayer = isElectron() ? window.api.mpvPlayer : null;
 
 interface PlayQueueListOptionsProps {
-    tableRef: MutableRefObject<{ grid: AgGridReactType<Song> } | null>;
+    tableRef: MutableRefObject<null | { grid: AgGridReactType<Song> }>;
     type: TableType;
 }
 
-export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsProps) => {
+export const PlayQueueListControls = ({ tableRef, type }: PlayQueueListOptionsProps) => {
     const { t } = useTranslation();
     const {
         clearQueue,
         moveToBottomOfQueue,
         moveToNextOfQueue,
         moveToTopOfQueue,
-        shuffleQueue,
         removeFromQueue,
+        shuffleQueue,
     } = useQueueControls();
 
     const { pause } = usePlayerControls();
@@ -127,69 +121,57 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
 
     return (
         <Group
-            position="apart"
+            justify="space-between"
             px="1rem"
             py="1rem"
-            sx={{ alignItems: 'center' }}
+            style={{ alignItems: 'center' }}
             w="100%"
         >
-            <Group spacing="sm">
-                <Button
-                    compact
-                    size="md"
-                    tooltip={{ label: t('player.shuffle', { postProcess: 'sentenceCase' }) }}
-                    variant="default"
+            <Group gap="sm">
+                <ActionIcon
+                    icon="mediaShuffle"
+                    iconProps={{ size: 'lg' }}
                     onClick={handleShuffleQueue}
-                >
-                    <RiShuffleLine size="1.1rem" />
-                </Button>
-                <Button
-                    compact
-                    size="md"
-                    tooltip={{ label: t('action.moveToNext', { postProcess: 'sentenceCase' }) }}
-                    variant="default"
+                    tooltip={{ label: t('player.shuffle', { postProcess: 'sentenceCase' }) }}
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon="mediaPlayNext"
+                    iconProps={{ size: 'lg' }}
                     onClick={handleMoveToNext}
-                >
-                    <RiArrowGoForwardLine size="1.1rem" />
-                </Button>
-                <Button
-                    compact
-                    size="md"
-                    tooltip={{ label: t('action.moveToBottom', { postProcess: 'sentenceCase' }) }}
-                    variant="default"
+                    tooltip={{ label: t('action.moveToNext', { postProcess: 'sentenceCase' }) }}
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon="arrowDownToLine"
+                    iconProps={{ size: 'lg' }}
                     onClick={handleMoveToBottom}
-                >
-                    <RiArrowDownLine size="1.1rem" />
-                </Button>
-                <Button
-                    compact
-                    size="md"
-                    tooltip={{ label: t('action.moveToTop', { postProcess: 'sentenceCase' }) }}
-                    variant="default"
+                    tooltip={{ label: t('action.moveToBottom', { postProcess: 'sentenceCase' }) }}
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon="arrowUpToLine"
+                    iconProps={{ size: 'lg' }}
                     onClick={handleMoveToTop}
-                >
-                    <RiArrowUpLine size="1.1rem" />
-                </Button>
-                <Button
-                    compact
-                    size="md"
+                    tooltip={{ label: t('action.moveToTop', { postProcess: 'sentenceCase' }) }}
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon="delete"
+                    iconProps={{ size: 'lg' }}
+                    onClick={handleRemoveSelected}
                     tooltip={{
                         label: t('action.removeFromQueue', { postProcess: 'sentenceCase' }),
                     }}
-                    variant="default"
-                    onClick={handleRemoveSelected}
-                >
-                    <RiEraserLine size="1.1rem" />
-                </Button>
-                <Button
-                    compact
-                    size="md"
-                    tooltip={{ label: t('action.clearQueue', { postProcess: 'sentenceCase' }) }}
-                    variant="default"
+                    variant="subtle"
+                />
+                <ActionIcon
+                    icon="x"
+                    iconProps={{ size: 'lg' }}
                     onClick={handleClearQueue}
-                >
-                    <RiDeleteBinLine size="1.1rem" />
-                </Button>
+                    tooltip={{ label: t('action.clearQueue', { postProcess: 'sentenceCase' }) }}
+                    variant="subtle"
+                />
             </Group>
             <Group>
                 <Popover
@@ -197,16 +179,14 @@ export const PlayQueueListControls = ({ type, tableRef }: PlayQueueListOptionsPr
                     transitionProps={{ transition: 'fade' }}
                 >
                     <Popover.Target>
-                        <Button
-                            compact
-                            size="md"
+                        <ActionIcon
+                            icon="settings"
+                            iconProps={{ size: 'lg' }}
                             tooltip={{
                                 label: t('common.configure', { postProcess: 'sentenceCase' }),
                             }}
                             variant="subtle"
-                        >
-                            <RiListSettingsLine size="1.1rem" />
-                        </Button>
+                        />
                     </Popover.Target>
                     <Popover.Dropdown>
                         <TableConfigDropdown type={type} />

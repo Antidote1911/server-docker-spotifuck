@@ -1,95 +1,41 @@
+import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Center, Group } from '@mantine/core';
-import { AnimatePresence, motion } from 'framer-motion';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
-import { RiInformationFill } from 'react-icons/ri';
-import styled from 'styled-components';
-import { useSongLyricsByRemoteId, useSongLyricsBySong } from './queries/lyric-query';
-import { translateLyrics } from './queries/lyric-translate';
-import { SynchronizedLyrics, SynchronizedLyricsProps } from './synchronized-lyrics';
-import { Spinner, TextTitle } from '/@/renderer/components';
+
+import styles from './lyrics.module.css';
+
+import { queryKeys } from '/@/renderer/api/query-keys';
 import { ErrorFallback } from '/@/renderer/features/action-required';
+import { LyricsActions } from '/@/renderer/features/lyrics/lyrics-actions';
+import {
+    useSongLyricsByRemoteId,
+    useSongLyricsBySong,
+} from '/@/renderer/features/lyrics/queries/lyric-query';
+import { translateLyrics } from '/@/renderer/features/lyrics/queries/lyric-translate';
+import {
+    SynchronizedLyrics,
+    SynchronizedLyricsProps,
+} from '/@/renderer/features/lyrics/synchronized-lyrics';
 import {
     UnsynchronizedLyrics,
     UnsynchronizedLyricsProps,
 } from '/@/renderer/features/lyrics/unsynchronized-lyrics';
-import { useCurrentSong, usePlayerStore, useLyricsSettings } from '/@/renderer/store';
-import { FullLyricsMetadata, LyricSource, LyricsOverride } from '/@/renderer/api/types';
-import { LyricsActions } from '/@/renderer/features/lyrics/lyrics-actions';
-import { queryKeys } from '/@/renderer/api/query-keys';
 import { queryClient } from '/@/renderer/lib/react-query';
-
-const ActionsContainer = styled.div`
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    z-index: 50;
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-
-    &:hover {
-        opacity: 1 !important;
-    }
-
-    &:focus-within {
-        opacity: 1 !important;
-    }
-`;
-
-const LyricsContainer = styled.div`
-    position: relative;
-    display: flex;
-    width: 100%;
-    height: 100%;
-
-    &:hover {
-        ${ActionsContainer} {
-            opacity: 0.6;
-        }
-    }
-`;
-
-const ScrollContainer = styled(motion.div)`
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    text-align: center;
-
-    mask-image: linear-gradient(
-        180deg,
-        transparent 5%,
-        rgb(0 0 0 / 100%) 20%,
-        rgb(0 0 0 / 100%) 85%,
-        transparent 95%
-    );
-
-    &.mantine-ScrollArea-root {
-        width: 100%;
-        height: 100%;
-    }
-
-    & .mantine-ScrollArea-viewport {
-        height: 100% !important;
-    }
-
-    & .mantine-ScrollArea-viewport > div {
-        height: 100%;
-    }
-`;
+import { useCurrentSong, useLyricsSettings, usePlayerStore } from '/@/renderer/store';
+import { Center } from '/@/shared/components/center/center';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { Spinner } from '/@/shared/components/spinner/spinner';
+import { Text } from '/@/shared/components/text/text';
+import { FullLyricsMetadata, LyricSource, LyricsOverride } from '/@/shared/types/domain-types';
 
 export const Lyrics = () => {
     const currentSong = useCurrentSong();
     const lyricsSettings = useLyricsSettings();
     const { t } = useTranslation();
     const [index, setIndex] = useState(0);
-    const [translatedLyrics, setTranslatedLyrics] = useState<string | null>(null);
+    const [translatedLyrics, setTranslatedLyrics] = useState<null | string>(null);
     const [showTranslation, setShowTranslation] = useState(false);
 
     const { data, isInitialLoading } = useSongLyricsBySong(
@@ -153,7 +99,7 @@ export const Lyrics = () => {
             : lyrics.lyrics;
         const { translationApiKey, translationApiProvider, translationTargetLanguage } =
             lyricsSettings;
-        const TranslatedText: string | null = await translateLyrics(
+        const TranslatedText: null | string = await translateLyrics(
             originalLyrics,
             translationApiKey,
             translationApiProvider,
@@ -203,7 +149,7 @@ export const Lyrics = () => {
 
     return (
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <LyricsContainer>
+            <div className={styles.lyricsContainer}>
                 {isLoadingLyrics ? (
                     <Spinner
                         container
@@ -214,20 +160,18 @@ export const Lyrics = () => {
                         {hasNoLyrics ? (
                             <Center w="100%">
                                 <Group>
-                                    <RiInformationFill size="2rem" />
-                                    <TextTitle
-                                        order={3}
-                                        weight={700}
-                                    >
+                                    <Icon icon="info" />
+                                    <Text>
                                         {t('page.fullscreenPlayer.noLyrics', {
                                             postProcess: 'sentenceCase',
                                         })}
-                                    </TextTitle>
+                                    </Text>
                                 </Group>
                             </Center>
                         ) : (
-                            <ScrollContainer
+                            <motion.div
                                 animate={{ opacity: 1 }}
+                                className={styles.scrollContainer}
                                 initial={{ opacity: 0 }}
                                 transition={{ duration: 0.5 }}
                             >
@@ -242,22 +186,22 @@ export const Lyrics = () => {
                                         translatedLyrics={showTranslation ? translatedLyrics : null}
                                     />
                                 )}
-                            </ScrollContainer>
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 )}
-                <ActionsContainer>
+                <div className={styles.actionsContainer}>
                     <LyricsActions
                         index={index}
                         languages={languages}
-                        setIndex={setIndex}
                         onRemoveLyric={handleOnRemoveLyric}
                         onResetLyric={handleOnResetLyric}
                         onSearchOverride={handleOnSearchOverride}
                         onTranslateLyric={handleOnTranslateLyric}
+                        setIndex={setIndex}
                     />
-                </ActionsContainer>
-            </LyricsContainer>
+                </div>
+            </div>
         </ErrorBoundary>
     );
 };

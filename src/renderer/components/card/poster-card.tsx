@@ -1,17 +1,19 @@
-import { Center, Stack } from '@mantine/core';
-import { RiAlbumFill, RiPlayListFill, RiUserVoiceFill } from 'react-icons/ri';
+import { useState } from 'react';
 import { generatePath, Link } from 'react-router-dom';
-import { SimpleImg } from 'react-simple-img';
-import styled, { css } from 'styled-components';
-import { Album, AlbumArtist, Artist, LibraryItem } from '/@/renderer/api/types';
-import { CardRows } from '/@/renderer/components/card';
-import { Skeleton } from '/@/renderer/components/skeleton';
+
+import styles from './poster-card.module.css';
+
+import { CardRows } from '/@/renderer/components/card/card-rows';
 import { GridCardControls } from '/@/renderer/components/virtual-grid/grid-card/grid-card-controls';
-import { CardRow, PlayQueueAddOptions, Play, CardRoute } from '/@/renderer/types';
+import { Image } from '/@/shared/components/image/image';
+import { Skeleton } from '/@/shared/components/skeleton/skeleton';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Album, AlbumArtist, Artist, LibraryItem } from '/@/shared/types/domain-types';
+import { CardRoute, CardRow, Play, PlayQueueAddOptions } from '/@/shared/types/types';
 
 interface BaseGridCardProps {
     controls: {
-        cardRows: CardRow<Album>[] | CardRow<Artist>[] | CardRow<AlbumArtist>[];
+        cardRows: CardRow<Album>[] | CardRow<AlbumArtist>[] | CardRow<Artist>[];
         handleFavorite: (options: {
             id: string[];
             isFavorite: boolean;
@@ -27,88 +29,17 @@ interface BaseGridCardProps {
     isLoading?: boolean;
 }
 
-const PosterCardContainer = styled.div<{ $isHidden?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    pointer-events: auto;
-    opacity: ${({ $isHidden }) => ($isHidden ? 0 : 1)};
-
-    .card-controls {
-        opacity: 0;
-    }
-`;
-
-const ImageContainerStyles = css`
-    position: relative;
-    display: flex;
-    align-items: center;
-    aspect-ratio: 1/1;
-    overflow: hidden;
-    background: var(--card-default-bg);
-    border-radius: var(--card-poster-radius);
-
-    &::before {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-        width: 100%;
-        height: 100%;
-        content: '';
-        user-select: none;
-        background: linear-gradient(0deg, rgb(0 0 0 / 100%) 35%, rgb(0 0 0 / 0%) 100%);
-        opacity: 0;
-        transition: all 0.2s ease-in-out;
-    }
-
-    &:hover {
-        &::before {
-            opacity: 0.5;
-        }
-    }
-
-    &:hover .card-controls {
-        opacity: 1;
-    }
-`;
-
-const ImageContainer = styled(Link)<{ $isFavorite?: boolean }>`
-    ${ImageContainerStyles}
-`;
-
-const ImageContainerSkeleton = styled.div`
-    ${ImageContainerStyles}
-`;
-
-const Image = styled(SimpleImg)`
-    width: 100%;
-    max-width: 100%;
-    height: 100% !important;
-    max-height: 100%;
-    border: 0;
-
-    img {
-        height: 100%;
-        object-fit: var(--image-fit);
-    }
-`;
-
-const DetailContainer = styled.div`
-    margin-top: 0.5rem;
-`;
-
 export const PosterCard = ({
-    data,
     controls,
+    data,
     isLoading,
     uniqueId,
 }: BaseGridCardProps & { uniqueId: string }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
     if (!isLoading) {
         const path = generatePath(
-            controls.route.route,
+            controls.route.route as string,
             controls.route.slugs?.reduce((acc, slug) => {
                 return {
                     ...acc,
@@ -117,90 +48,57 @@ export const PosterCard = ({
             }, {}),
         );
 
-        let Placeholder = RiAlbumFill;
-
-        switch (controls.itemType) {
-            case LibraryItem.ALBUM:
-                Placeholder = RiAlbumFill;
-                break;
-            case LibraryItem.ARTIST:
-                Placeholder = RiUserVoiceFill;
-                break;
-            case LibraryItem.ALBUM_ARTIST:
-                Placeholder = RiUserVoiceFill;
-                break;
-            case LibraryItem.PLAYLIST:
-                Placeholder = RiPlayListFill;
-                break;
-            default:
-                Placeholder = RiAlbumFill;
-                break;
-        }
-
         return (
-            <PosterCardContainer key={`${uniqueId}-${data.id}`}>
-                <ImageContainer
-                    $isFavorite={data?.userFavorite}
+            <div
+                className={styles.container}
+                key={`${uniqueId}-${data.id}`}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
+                <Link
+                    className={styles.imageContainer}
                     to={path}
                 >
-                    {data?.imageUrl ? (
-                        <Image
-                            importance="auto"
-                            placeholder={data?.imagePlaceholderUrl || 'var(--card-default-bg)'}
-                            src={data?.imageUrl}
-                        />
-                    ) : (
-                        <Center
-                            sx={{
-                                background: 'var(--placeholder-bg)',
-                                borderRadius: 'var(--card-default-radius)',
-                                height: '100%',
-                                width: '100%',
-                            }}
-                        >
-                            <Placeholder
-                                color="var(--placeholder-fg)"
-                                size={35}
-                            />
-                        </Center>
-                    )}
+                    <Image
+                        className={styles.image}
+                        src={data?.imageUrl}
+                    />
                     <GridCardControls
                         handleFavorite={controls.handleFavorite}
                         handlePlayQueueAdd={controls.handlePlayQueueAdd}
+                        isHovered={isHovered}
                         itemData={data}
                         itemType={controls.itemType}
                     />
-                </ImageContainer>
-                <DetailContainer>
+                </Link>
+                <div className={styles.detailContainer}>
                     <CardRows
                         data={data}
                         rows={controls.cardRows}
                     />
-                </DetailContainer>
-            </PosterCardContainer>
+                </div>
+            </div>
         );
     }
 
     return (
-        <PosterCardContainer key={`placeholder-${uniqueId}-${data.id}`}>
-            <Skeleton
-                visible
-                radius="sm"
-            >
-                <ImageContainerSkeleton />
-            </Skeleton>
-            <DetailContainer>
-                <Stack spacing="sm">
+        <div
+            className={styles.container}
+            key={`placeholder-${uniqueId}-${data.id}`}
+        >
+            <div className={styles.imageContainer}>
+                <Skeleton className={styles.image} />
+            </div>
+            <div className={styles.detailContainer}>
+                <Stack gap="xs">
                     {(controls?.cardRows || []).map((row, index) => (
                         <Skeleton
-                            key={`${index}-${row.arrayProperty}`}
-                            visible
                             height={14}
-                            radius="sm"
+                            key={`${index}-${row.arrayProperty}`}
                         />
                     ))}
                 </Stack>
-            </DetailContainer>
-        </PosterCardContainer>
+            </div>
+        </div>
     );
 };

@@ -1,20 +1,15 @@
-import { useLayoutEffect, useRef } from 'react';
-import { Divider, Group } from '@mantine/core';
 import { useHotkeys } from '@mantine/hooks';
-import { Variants, motion } from 'framer-motion';
+import { motion, Variants } from 'motion/react';
+import { CSSProperties, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RiArrowDownSLine, RiSettings3Line } from 'react-icons/ri';
 import { useLocation } from 'react-router';
-import styled from 'styled-components';
-import {
-    Button,
-    NumberInput,
-    Option,
-    Popover,
-    Select,
-    Slider,
-    Switch,
-} from '/@/renderer/components';
+
+import styles from './full-screen-player.module.css';
+
+import { TableConfigDropdown } from '/@/renderer/components/virtual-table';
+import { FullScreenPlayerImage } from '/@/renderer/features/player/components/full-screen-player-image';
+import { FullScreenPlayerQueue } from '/@/renderer/features/player/components/full-screen-player-queue';
+import { useFastAverageColor } from '/@/renderer/hooks';
 import {
     useCurrentSong,
     useFullScreenPlayerStore,
@@ -24,60 +19,24 @@ import {
     useSettingsStoreActions,
     useWindowSettings,
 } from '/@/renderer/store';
-import { useFastAverageColor } from '../../../hooks/use-fast-average-color';
-import { FullScreenPlayerImage } from '/@/renderer/features/player/components/full-screen-player-image';
-import { FullScreenPlayerQueue } from '/@/renderer/features/player/components/full-screen-player-queue';
-import { TableConfigDropdown } from '/@/renderer/components/virtual-table';
-import { Platform } from '/@/renderer/types';
+import { ActionIcon } from '/@/shared/components/action-icon/action-icon';
+import { Divider } from '/@/shared/components/divider/divider';
+import { Group } from '/@/shared/components/group/group';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Option } from '/@/shared/components/option/option';
+import { Popover } from '/@/shared/components/popover/popover';
+import { Select } from '/@/shared/components/select/select';
+import { Slider } from '/@/shared/components/slider/slider';
+import { Switch } from '/@/shared/components/switch/switch';
+import { Platform } from '/@/shared/types/types';
 
-const Container = styled(motion.div)`
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 200;
-    display: flex;
-    justify-content: center;
-    padding: 2rem;
+const mainBackground = 'var(--theme-colors-background)';
 
-    @media screen and (orientation: portrait) {
-        padding: 2rem 2rem 1rem;
-    }
-`;
-
-const ResponsiveContainer = styled.div`
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 2rem 2rem;
-    width: 100%;
-    max-width: 2560px;
-    margin-top: 5rem;
-
-    @media screen and (orientation: portrait) {
-        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-columns: minmax(0, 1fr);
-        margin-top: 0;
-    }
-`;
-
-interface BackgroundImageOverlayProps {
-    $blur: number;
+interface ControlsProps {
+    isPageHovered: boolean;
 }
 
-const BackgroundImageOverlay = styled.div<BackgroundImageOverlayProps>`
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: -1;
-    width: 100%;
-    height: 100%;
-    background: var(--bg-header-overlay);
-    backdrop-filter: blur(${({ $blur }) => $blur}rem);
-`;
-
-const mainBackground = 'var(--main-bg)';
-
-const Controls = () => {
+const Controls = ({ isPageHovered }: ControlsProps) => {
     const { t } = useTranslation();
     const {
         dynamicBackground,
@@ -108,34 +67,30 @@ const Controls = () => {
 
     return (
         <Group
+            gap="sm"
             p="1rem"
             pos="absolute"
-            spacing="sm"
-            sx={{
-                background: `rgb(var(--main-bg-transparent), ${opacity}%)`,
+            style={{
+                background: `rgb(var(--theme-colors-background-transparent), ${opacity}%)`,
                 left: 0,
                 top: 0,
             }}
         >
-            <Button
-                compact
-                size="sm"
-                tooltip={{ label: t('common.minimize', { postProcess: 'titleCase' }) }}
-                variant="subtle"
+            <ActionIcon
+                icon="arrowDownS"
+                iconProps={{ size: 'lg' }}
                 onClick={handleToggleFullScreenPlayer}
-            >
-                <RiArrowDownSLine size="2rem" />
-            </Button>
+                tooltip={{ label: t('common.minimize', { postProcess: 'titleCase' }) }}
+                variant={isPageHovered ? 'default' : 'subtle'}
+            />
             <Popover position="bottom-start">
                 <Popover.Target>
-                    <Button
-                        compact
-                        size="sm"
+                    <ActionIcon
+                        icon="settings"
+                        iconProps={{ size: 'lg' }}
                         tooltip={{ label: t('common.configure', { postProcess: 'titleCase' }) }}
-                        variant="subtle"
-                    >
-                        <RiSettings3Line size="1.5rem" />
-                    </Button>
+                        variant={isPageHovered ? 'default' : 'subtle'}
+                    />
                 </Popover.Target>
                 <Popover.Dropdown>
                     <Option>
@@ -187,9 +142,9 @@ const Controls = () => {
                                     label={(e) => `${e} rem`}
                                     max={6}
                                     min={0}
+                                    onChangeEnd={(e) => setStore({ dynamicImageBlur: Number(e) })}
                                     step={0.5}
                                     w="100%"
-                                    onChangeEnd={(e) => setStore({ dynamicImageBlur: Number(e) })}
                                 />
                             </Option.Control>
                         </Option>
@@ -207,8 +162,8 @@ const Controls = () => {
                                     label={(e) => `${e} %`}
                                     max={100}
                                     min={0}
-                                    w="100%"
                                     onChangeEnd={(e) => setStore({ opacity: Number(e) })}
+                                    w="100%"
                                 />
                             </Option.Control>
                         </Option>
@@ -284,8 +239,8 @@ const Controls = () => {
                         </Option.Label>
                         <Option.Control>
                             <Group
-                                noWrap
                                 w="100%"
+                                wrap="nowrap"
                             >
                                 <Slider
                                     defaultValue={lyricConfig.fontSize}
@@ -296,8 +251,8 @@ const Controls = () => {
                                     }
                                     max={72}
                                     min={8}
-                                    w="100%"
                                     onChangeEnd={(e) => handleLyricsSettings('fontSize', Number(e))}
+                                    w="100%"
                                 />
                                 <Slider
                                     defaultValue={lyricConfig.fontSize}
@@ -308,10 +263,10 @@ const Controls = () => {
                                     }
                                     max={72}
                                     min={8}
-                                    w="100%"
                                     onChangeEnd={(e) =>
                                         handleLyricsSettings('fontSizeUnsync', Number(e))
                                     }
+                                    w="100%"
                                 />
                             </Group>
                         </Option.Control>
@@ -324,26 +279,26 @@ const Controls = () => {
                         </Option.Label>
                         <Option.Control>
                             <Group
-                                noWrap
                                 w="100%"
+                                wrap="nowrap"
                             >
                                 <Slider
                                     defaultValue={lyricConfig.gap}
                                     label={(e) => `Synchronized: ${e}px`}
                                     max={50}
                                     min={0}
-                                    w="100%"
                                     onChangeEnd={(e) => handleLyricsSettings('gap', Number(e))}
+                                    w="100%"
                                 />
                                 <Slider
                                     defaultValue={lyricConfig.gap}
                                     label={(e) => `Unsynchronized: ${e}px`}
                                     max={50}
                                     min={0}
-                                    w="100%"
                                     onChangeEnd={(e) =>
                                         handleLyricsSettings('gapUnsync', Number(e))
                                     }
+                                    w="100%"
                                 />
                             </Group>
                         </Option.Control>
@@ -376,8 +331,8 @@ const Controls = () => {
                                         value: 'right',
                                     },
                                 ]}
-                                value={lyricConfig.alignment}
                                 onChange={(e) => handleLyricsSettings('alignment', e)}
+                                value={lyricConfig.alignment}
                             />
                         </Option.Control>
                     </Option>
@@ -391,10 +346,10 @@ const Controls = () => {
                             <NumberInput
                                 defaultValue={lyricConfig.delayMs}
                                 hideControls={false}
-                                step={10}
                                 onBlur={(e) =>
                                     handleLyricsSettings('delayMs', Number(e.currentTarget.value))
                                 }
+                                step={10}
                             />
                         </Option.Control>
                     </Option>
@@ -459,6 +414,8 @@ export const FullScreenPlayer = () => {
     const { setStore } = useFullScreenPlayerStoreActions();
     const { windowBarStyle } = useWindowSettings();
 
+    const [isPageHovered, setIsPageHovered] = useState(false);
+
     const location = useLocation();
     const isOpenedRef = useRef<boolean | null>(null);
 
@@ -471,7 +428,7 @@ export const FullScreenPlayer = () => {
     }, [location, setStore]);
 
     const currentSong = useCurrentSong();
-    const { color: background } = useFastAverageColor({
+    const { background } = useFastAverageColor({
         algorithm: 'dominant',
         src: currentSong?.imageUrl,
         srcLoaded: true,
@@ -484,20 +441,32 @@ export const FullScreenPlayer = () => {
             : mainBackground;
 
     return (
-        <Container
+        <motion.div
             animate="open"
+            className={styles.container}
             custom={{ background, backgroundImage, dynamicBackground, windowBarStyle }}
             exit="closed"
             initial="closed"
+            onMouseEnter={() => setIsPageHovered(true)}
+            onMouseLeave={() => setIsPageHovered(false)}
             transition={{ duration: 2 }}
             variants={containerVariants}
         >
-            <Controls />
-            {dynamicBackground && <BackgroundImageOverlay $blur={dynamicImageBlur} />}
-            <ResponsiveContainer>
+            <Controls isPageHovered={isPageHovered} />
+            {dynamicBackground && (
+                <div
+                    className={styles.backgroundImageOverlay}
+                    style={
+                        {
+                            '--image-blur': `${dynamicImageBlur}rem`,
+                        } as CSSProperties
+                    }
+                />
+            )}
+            <div className={styles.responsiveContainer}>
                 <FullScreenPlayerImage />
                 <FullScreenPlayerQueue />
-            </ResponsiveContainer>
-        </Container>
+            </div>
+        </motion.div>
     );
 };

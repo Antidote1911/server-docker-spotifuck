@@ -1,31 +1,33 @@
-import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCurrentServer, usePlayerControls, usePlayerStore } from '/@/renderer/store';
-import { useGeneralSettings, usePlaybackType } from '/@/renderer/store/settings.store';
-import { PlayQueueAddOptions, Play, PlaybackType } from '/@/renderer/types';
-import { toast } from '/@/renderer/components/toast/index';
 import isElectron from 'is-electron';
 import { nanoid } from 'nanoid/non-secure';
+import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { queryKeys } from '/@/renderer/api/query-keys';
+import { PlayersRef } from '/@/renderer/features/player/ref/players-ref';
+import { updateSong } from '/@/renderer/features/player/update-remote-song';
 import {
+    getAlbumArtistSongsById,
+    getAlbumSongsById,
+    getArtistSongsById,
+    getGenreSongsById,
+    getPlaylistSongsById,
+    getSongById,
+    getSongsByQuery,
+} from '/@/renderer/features/player/utils';
+import { useCurrentServer, usePlayerControls, usePlayerStore } from '/@/renderer/store';
+import { useGeneralSettings, usePlaybackType } from '/@/renderer/store/settings.store';
+import { setQueue, setQueueNext } from '/@/renderer/utils/set-transcoded-queue-data';
+import { toast } from '/@/shared/components/toast/toast';
+import {
+    instanceOfCancellationError,
     LibraryItem,
     QueueSong,
     Song,
     SongListResponse,
-    instanceOfCancellationError,
-} from '/@/renderer/api/types';
-import {
-    getPlaylistSongsById,
-    getSongById,
-    getAlbumSongsById,
-    getAlbumArtistSongsById,
-    getSongsByQuery,
-    getGenreSongsById,
-} from '/@/renderer/features/player/utils';
-import { queryKeys } from '/@/renderer/api/query-keys';
-import { useTranslation } from 'react-i18next';
-import { PlayersRef } from '/@/renderer/features/player/ref/players-ref';
-import { updateSong } from '/@/renderer/features/player/update-remote-song';
-import { setQueue, setQueueNext } from '/@/renderer/utils/set-transcoded-queue-data';
+} from '/@/shared/types/domain-types';
+import { Play, PlaybackType, PlayQueueAddOptions } from '/@/shared/types/types';
 
 const getRootQueryKey = (itemType: LibraryItem, serverId: string) => {
     let queryKey;
@@ -54,7 +56,7 @@ const getRootQueryKey = (itemType: LibraryItem, serverId: string) => {
     return queryKey;
 };
 
-const mpvPlayer = isElectron() ? window.electron.mpvPlayer : null;
+const mpvPlayer = isElectron() ? window.api.mpvPlayer : null;
 
 const addToQueue = usePlayerStore.getState().actions.addToQueue;
 
@@ -64,20 +66,20 @@ export const useHandlePlayQueueAdd = () => {
     const playbackType = usePlaybackType();
     const server = useCurrentServer();
     const { play } = usePlayerControls();
-    const timeoutIds = useRef<Record<string, ReturnType<typeof setTimeout>> | null>({});
+    const timeoutIds = useRef<null | Record<string, ReturnType<typeof setTimeout>>>({});
 
     const { doubleClickQueueAll } = useGeneralSettings();
 
     const handlePlayQueueAdd = useCallback(
         async (options: PlayQueueAddOptions) => {
             if (!server) return toast.error({ message: 'No server selected', type: 'error' });
-            const { initialIndex, initialSongId, playType, byData, byItemType, query } = options;
-            let songs: QueueSong[] | null = null;
+            const { byData, byItemType, initialIndex, initialSongId, playType, query } = options;
+            let songs: null | QueueSong[] = null;
             let initialSongIndex = 0;
 
             if (byItemType) {
                 let songList: SongListResponse | undefined;
-                const { type: itemType, id } = byItemType;
+                const { id, type: itemType } = byItemType;
 
                 const fetchId = nanoid();
                 timeoutIds.current = {
@@ -114,6 +116,13 @@ export const useHandlePlayQueueAdd = () => {
                         songList = await getAlbumSongsById({ id, query, queryClient, server });
                     } else if (itemType === LibraryItem.ALBUM_ARTIST) {
                         songList = await getAlbumArtistSongsById({
+                            id,
+                            query,
+                            queryClient,
+                            server,
+                        });
+                    } else if (itemType === LibraryItem.ARTIST) {
+                        songList = await getArtistSongsById({
                             id,
                             query,
                             queryClient,
@@ -162,7 +171,7 @@ export const useHandlePlayQueueAdd = () => {
             if (!songs || songs?.length === 0)
                 return toast.warn({
                     message: t('common.noResultsFromQuery', { postProcess: 'sentenceCase' }),
-                    title: t('player.playbackFetchNoResults'),
+                    title: t('player.playbackFetchNoResults', { postProcess: 'sentenceCase' }),
                 });
 
             if (initialIndex) {

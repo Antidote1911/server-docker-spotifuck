@@ -1,29 +1,20 @@
+import isElectron from 'is-electron';
+import { useTranslation } from 'react-i18next';
+
+import { languages } from '/@/i18n/i18n';
 import {
     SettingOption,
     SettingsSection,
 } from '/@/renderer/features/settings/components/settings-section';
 import { useLyricsSettings, useSettingsStoreActions } from '/@/renderer/store';
-import {
-    Select,
-    MultiSelect,
-    MultiSelectProps,
-    TextInput,
-    NumberInput,
-    Switch,
-} from '/@/renderer/components';
-import isElectron from 'is-electron';
-import styled from 'styled-components';
-import { LyricSource } from '/@/renderer/api/types';
-import { useTranslation } from 'react-i18next';
-import { languages } from '/@/i18n/i18n';
+import { MultiSelect } from '/@/shared/components/multi-select/multi-select';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Select } from '/@/shared/components/select/select';
+import { Switch } from '/@/shared/components/switch/switch';
+import { TextInput } from '/@/shared/components/text-input/text-input';
+import { LyricSource } from '/@/shared/types/domain-types';
 
-const localSettings = isElectron() ? window.electron.localSettings : null;
-
-const WorkingButtonSelect = styled(MultiSelect)<MultiSelectProps>`
-    & button {
-        padding: 0;
-    }
-`;
+const localSettings = isElectron() ? window.api.localSettings : null;
 
 export const LyricSettings = () => {
     const { t } = useTranslation();
@@ -55,6 +46,28 @@ export const LyricSettings = () => {
         {
             control: (
                 <Switch
+                    aria-label="Prefer local lyrics"
+                    defaultChecked={settings.preferLocalLyrics}
+                    onChange={(e) => {
+                        setSettings({
+                            lyrics: {
+                                ...settings,
+                                preferLocalLyrics: e.currentTarget.checked,
+                            },
+                        });
+                    }}
+                />
+            ),
+            description: t('setting.preferLocalLyrics', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.preferLocalLyrics', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
+                <Switch
                     aria-label="Enable fetching lyrics"
                     defaultChecked={settings.fetch}
                     onChange={(e) => {
@@ -76,21 +89,21 @@ export const LyricSettings = () => {
         },
         {
             control: (
-                <WorkingButtonSelect
-                    clearable
+                <MultiSelect
                     aria-label="Lyric providers"
+                    clearable
                     data={Object.values(LyricSource)}
                     defaultValue={settings.sources}
-                    width={300}
-                    onChange={(e: LyricSource[]) => {
+                    onChange={(e: string[]) => {
                         localSettings?.set('lyrics', e);
                         setSettings({
                             lyrics: {
                                 ...settings,
-                                sources: e,
+                                sources: e.map((source) => source as LyricSource),
                             },
                         });
                     }}
+                    width={300}
                 />
             ),
             description: t('setting.lyricFetchProvider', {
@@ -102,10 +115,32 @@ export const LyricSettings = () => {
         },
         {
             control: (
+                <Switch
+                    aria-label="Enable NetEase translations"
+                    defaultChecked={settings.enableNeteaseTranslation}
+                    onChange={(e) => {
+                        const isChecked = e.currentTarget.checked;
+                        setSettings({
+                            lyrics: {
+                                ...settings,
+                                enableNeteaseTranslation: e.currentTarget.checked,
+                            },
+                        });
+                        localSettings?.set('enableNeteaseTranslation', isChecked);
+                    }}
+                />
+            ),
+            description: t('setting.neteaseTranslation', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: !isElectron(),
+            title: t('setting.neteaseTranslation', { postProcess: 'sentenceCase' }),
+        },
+        {
+            control: (
                 <NumberInput
                     defaultValue={settings.delayMs}
-                    step={10}
-                    width={100}
                     onBlur={(e) => {
                         const value = Number(e.currentTarget.value);
                         setSettings({
@@ -115,6 +150,8 @@ export const LyricSettings = () => {
                             },
                         });
                     }}
+                    step={10}
+                    width={100}
                 />
             ),
             description: t('setting.lyricOffset', {
@@ -128,10 +165,10 @@ export const LyricSettings = () => {
             control: (
                 <Select
                     data={languages}
-                    value={settings.translationTargetLanguage}
                     onChange={(value) => {
                         setSettings({ lyrics: { ...settings, translationTargetLanguage: value } });
                     }}
+                    value={settings.translationTargetLanguage}
                 />
             ),
             description: t('setting.translationTargetLanguage', {
@@ -145,10 +182,10 @@ export const LyricSettings = () => {
             control: (
                 <Select
                     data={['Microsoft Azure', 'Google Cloud']}
-                    value={settings.translationApiProvider}
                     onChange={(value) => {
                         setSettings({ lyrics: { ...settings, translationApiProvider: value } });
                     }}
+                    value={settings.translationApiProvider}
                 />
             ),
             description: t('setting.translationApiProvider', {
@@ -161,12 +198,12 @@ export const LyricSettings = () => {
         {
             control: (
                 <TextInput
-                    value={settings.translationApiKey}
                     onChange={(e) => {
                         setSettings({
                             lyrics: { ...settings, translationApiKey: e.currentTarget.value },
                         });
                     }}
+                    value={settings.translationApiKey}
                 />
             ),
             description: t('setting.translationApiKey', {

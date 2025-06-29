@@ -1,29 +1,20 @@
-import React from 'react';
+import clsx from 'clsx';
 import formatDuration from 'format-duration';
+import React from 'react';
 import { generatePath } from 'react-router';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
-import { Album, AlbumArtist, Artist, Playlist, Song } from '/@/renderer/api/types';
-import { Text } from '/@/renderer/components/text';
-import { AppRoute } from '/@/renderer/router/routes';
-import { CardRow } from '/@/renderer/types';
-import { formatDateAbsolute, formatDateRelative, formatRating } from '/@/renderer/utils/format';
 
-const Row = styled.div<{ $secondary?: boolean }>`
-    width: 100%;
-    max-width: 100%;
-    height: 22px;
-    padding: 0 0.2rem;
-    overflow: hidden;
-    color: ${({ $secondary }) => ($secondary ? 'var(--main-fg-secondary)' : 'var(--main-fg)')};
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    user-select: none;
-`;
+import styles from './card-rows.module.css';
+
+import { AppRoute } from '/@/renderer/router/routes';
+import { formatDateAbsolute, formatDateRelative, formatRating } from '/@/renderer/utils/format';
+import { Text } from '/@/shared/components/text/text';
+import { Album, AlbumArtist, Artist, Playlist, Song } from '/@/shared/types/domain-types';
+import { CardRow } from '/@/shared/types/types';
 
 interface CardRowsProps {
     data: any;
-    rows: CardRow<Album>[] | CardRow<Artist>[] | CardRow<AlbumArtist>[];
+    rows: CardRow<Album>[] | CardRow<AlbumArtist>[] | CardRow<Artist>[];
 }
 
 export const CardRows = ({ data, rows }: CardRowsProps) => {
@@ -32,17 +23,19 @@ export const CardRows = ({ data, rows }: CardRowsProps) => {
             {rows.map((row, index: number) => {
                 if (row.arrayProperty && row.route) {
                     return (
-                        <Row
+                        <div
+                            className={clsx(styles.row, {
+                                [styles.secondary]: index > 0,
+                            })}
                             key={`row-${row.property}-${index}`}
-                            $secondary={index > 0}
                         >
                             {data[row.property].map((item: any, itemIndex: number) => (
                                 <React.Fragment key={`${data.id}-${item.id}`}>
                                     {itemIndex > 0 && (
                                         <Text
-                                            $noSelect
-                                            $secondary
-                                            sx={{
+                                            isMuted
+                                            isNoSelect
+                                            style={{
                                                 display: 'inline-block',
                                                 padding: '0 2px 0 1px',
                                             }}
@@ -51,10 +44,11 @@ export const CardRows = ({ data, rows }: CardRowsProps) => {
                                         </Text>
                                     )}{' '}
                                     <Text
-                                        $link
-                                        $noSelect
-                                        $secondary={index > 0}
                                         component={Link}
+                                        isLink
+                                        isMuted={index > 0}
+                                        isNoSelect
+                                        onClick={(e) => e.stopPropagation()}
                                         overflow="hidden"
                                         size={index > 0 ? 'sm' : 'md'}
                                         to={generatePath(
@@ -69,7 +63,6 @@ export const CardRows = ({ data, rows }: CardRowsProps) => {
                                                 };
                                             }, {}),
                                         )}
-                                        onClick={(e) => e.stopPropagation()}
                                     >
                                         {row.arrayProperty &&
                                             (row.format
@@ -78,18 +71,23 @@ export const CardRows = ({ data, rows }: CardRowsProps) => {
                                     </Text>
                                 </React.Fragment>
                             ))}
-                        </Row>
+                        </div>
                     );
                 }
 
                 if (row.arrayProperty) {
                     return (
-                        <Row key={`row-${row.property}`}>
+                        <div
+                            className={clsx(styles.row, {
+                                [styles.secondary]: index > 0,
+                            })}
+                            key={`row-${row.property}`}
+                        >
                             {data[row.property].map((item: any) => (
                                 <Text
+                                    isMuted={index > 0}
+                                    isNoSelect
                                     key={`${data.id}-${item.id}`}
-                                    $noSelect
-                                    $secondary={index > 0}
                                     overflow="hidden"
                                     size={index > 0 ? 'sm' : 'md'}
                                 >
@@ -97,17 +95,23 @@ export const CardRows = ({ data, rows }: CardRowsProps) => {
                                         (row.format ? row.format(item) : item[row.arrayProperty])}
                                 </Text>
                             ))}
-                        </Row>
+                        </div>
                     );
                 }
 
                 return (
-                    <Row key={`row-${row.property}`}>
+                    <div
+                        className={clsx(styles.row, {
+                            [styles.secondary]: index > 0,
+                        })}
+                        key={`row-${row.property}`}
+                    >
                         {row.route ? (
                             <Text
-                                $link
-                                $noSelect
                                 component={Link}
+                                isLink
+                                isNoSelect
+                                onClick={(e) => e.stopPropagation()}
                                 overflow="hidden"
                                 to={generatePath(
                                     row.route.route,
@@ -118,21 +122,20 @@ export const CardRows = ({ data, rows }: CardRowsProps) => {
                                         };
                                     }, {}),
                                 )}
-                                onClick={(e) => e.stopPropagation()}
                             >
                                 {data && (row.format ? row.format(data) : data[row.property])}
                             </Text>
                         ) : (
                             <Text
-                                $noSelect
-                                $secondary={index > 0}
+                                isMuted={index > 0}
+                                isNoSelect
                                 overflow="hidden"
                                 size={index > 0 ? 'sm' : 'md'}
                             >
                                 {data && (row.format ? row.format(data) : data[row.property])}
                             </Text>
                         )}
-                    </Row>
+                    </div>
                 );
             })}
         </>

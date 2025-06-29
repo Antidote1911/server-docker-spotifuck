@@ -1,17 +1,27 @@
-import { useMemo, useState } from 'react';
-import { Box, Group, Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { closeModal, ContextModalProps } from '@mantine/modals';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import { api } from '/@/renderer/api';
 import { queryKeys } from '/@/renderer/api/query-keys';
-import { PlaylistListSort, SongListQuery, SongListSort, SortOrder } from '/@/renderer/api/types';
-import { Button, MultiSelect, Switch, toast } from '/@/renderer/components';
 import { getGenreSongsById } from '/@/renderer/features/player';
 import { useAddToPlaylist } from '/@/renderer/features/playlists/mutations/add-to-playlist-mutation';
 import { usePlaylistList } from '/@/renderer/features/playlists/queries/playlist-list-query';
 import { queryClient } from '/@/renderer/lib/react-query';
 import { useCurrentServer } from '/@/renderer/store';
-import { useTranslation } from 'react-i18next';
+import { Button } from '/@/shared/components/button/button';
+import { Group } from '/@/shared/components/group/group';
+import { MultiSelect } from '/@/shared/components/multi-select/multi-select';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Switch } from '/@/shared/components/switch/switch';
+import { toast } from '/@/shared/components/toast/toast';
+import {
+    PlaylistListSort,
+    SongListQuery,
+    SongListSort,
+    SortOrder,
+} from '/@/shared/types/domain-types';
 
 export const AddToPlaylistContextModal = ({
     id,
@@ -212,18 +222,18 @@ export const AddToPlaylistContextModal = ({
     });
 
     return (
-        <Box p="1rem">
+        <div style={{ padding: '1rem' }}>
             <form onSubmit={handleSubmit}>
                 <Stack>
                     <MultiSelect
                         clearable
-                        searchable
                         data={playlistSelect}
                         disabled={playlistList.isLoading}
                         label={t('form.addToPlaylist.input', {
                             context: 'playlists',
                             postProcess: 'titleCase',
                         })}
+                        searchable
                         size="md"
                         {...form.getInputProps('playlistId')}
                     />
@@ -234,29 +244,27 @@ export const AddToPlaylistContextModal = ({
                         })}
                         {...form.getInputProps('skipDuplicates', { type: 'checkbox' })}
                     />
-                    <Group position="right">
-                        <Group>
-                            <Button
-                                disabled={addToPlaylistMutation.isLoading}
-                                size="md"
-                                variant="subtle"
-                                onClick={() => closeModal(id)}
-                            >
-                                {t('common.cancel', { postProcess: 'titleCase' })}
-                            </Button>
-                            <Button
-                                disabled={isSubmitDisabled}
-                                loading={isLoading}
-                                size="md"
-                                type="submit"
-                                variant="filled"
-                            >
-                                {t('common.add', { postProcess: 'titleCase' })}
-                            </Button>
-                        </Group>
+                    <Group justify="flex-end">
+                        <Button
+                            disabled={addToPlaylistMutation.isLoading}
+                            onClick={() => closeModal(id)}
+                            size="md"
+                            variant="subtle"
+                        >
+                            {t('common.cancel', { postProcess: 'titleCase' })}
+                        </Button>
+                        <Button
+                            disabled={isSubmitDisabled}
+                            loading={isLoading}
+                            size="md"
+                            type="submit"
+                            variant="filled"
+                        >
+                            {t('common.add', { postProcess: 'titleCase' })}
+                        </Button>
                     </Group>
                 </Stack>
             </form>
-        </Box>
+        </div>
     );
 };

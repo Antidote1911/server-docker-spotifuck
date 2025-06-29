@@ -1,35 +1,40 @@
-import { ChangeEvent, MutableRefObject } from 'react';
 import type { AgGridReact as AgGridReactType } from '@ag-grid-community/react/lib/agGridReact';
-import { Flex, Group, Stack } from '@mantine/core';
+
 import debounce from 'lodash/debounce';
+import { ChangeEvent, MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, Link, useParams, useSearchParams } from 'react-router-dom';
-import { useCurrentServer } from '../../../store/auth.store';
+
+import { PageHeader } from '/@/renderer/components/page-header/page-header';
+import { FilterBar, LibraryHeaderBar } from '/@/renderer/features/shared';
+import { SearchInput } from '/@/renderer/features/shared/components/search-input';
+import { useContainerQuery } from '/@/renderer/hooks';
+import { useListFilterRefresh } from '/@/renderer/hooks/use-list-filter-refresh';
+import { AppRoute } from '/@/renderer/router/routes';
+import { useCurrentServer, useListStoreByKey } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
+import { Flex } from '/@/shared/components/flex/flex';
+import { Group } from '/@/shared/components/group/group';
+import { Stack } from '/@/shared/components/stack/stack';
 import {
     AlbumArtistListQuery,
     AlbumListQuery,
     LibraryItem,
     SongListQuery,
-} from '/@/renderer/api/types';
-import { Button, PageHeader, SearchInput } from '/@/renderer/components';
-import { FilterBar, LibraryHeaderBar } from '/@/renderer/features/shared';
-import { useContainerQuery } from '/@/renderer/hooks';
-import { useListFilterRefresh } from '/@/renderer/hooks/use-list-filter-refresh';
-import { AppRoute } from '/@/renderer/router/routes';
-import { useListStoreByKey } from '/@/renderer/store';
+} from '/@/shared/types/domain-types';
 
 interface SearchHeaderProps {
     navigationId: string;
     tableRef: MutableRefObject<AgGridReactType | null>;
 }
 
-export const SearchHeader = ({ tableRef, navigationId }: SearchHeaderProps) => {
+export const SearchHeader = ({ navigationId, tableRef }: SearchHeaderProps) => {
     const { t } = useTranslation();
     const { itemType } = useParams() as { itemType: LibraryItem };
     const [searchParams, setSearchParams] = useSearchParams();
     const cq = useContainerQuery();
     const server = useCurrentServer();
-    const { filter } = useListStoreByKey<AlbumListQuery | AlbumArtistListQuery | SongListQuery>({
+    const { filter } = useListStoreByKey<AlbumArtistListQuery | AlbumListQuery | SongListQuery>({
         key: itemType,
     });
 
@@ -45,8 +50,8 @@ export const SearchHeader = ({ tableRef, navigationId }: SearchHeaderProps) => {
 
     return (
         <Stack
+            gap={0}
             ref={cq.ref}
-            spacing={0}
         >
             <PageHeader>
                 <Flex
@@ -59,7 +64,6 @@ export const SearchHeader = ({ tableRef, navigationId }: SearchHeaderProps) => {
                     <Group>
                         <SearchInput
                             defaultValue={searchParams.get('query') || ''}
-                            openedWidth={cq.isMd ? 250 : cq.isSm ? 200 : 150}
                             onChange={handleSearch}
                         />
                     </Group>
@@ -68,11 +72,10 @@ export const SearchHeader = ({ tableRef, navigationId }: SearchHeaderProps) => {
             <FilterBar>
                 <Group>
                     <Button
-                        compact
-                        replace
                         component={Link}
                         fw={600}
-                        size="md"
+                        replace
+                        size="compact-md"
                         state={{ navigationId }}
                         to={{
                             pathname: generatePath(AppRoute.SEARCH, { itemType: LibraryItem.SONG }),
@@ -83,11 +86,10 @@ export const SearchHeader = ({ tableRef, navigationId }: SearchHeaderProps) => {
                         {t('entity.track_other', { postProcess: 'sentenceCase' })}
                     </Button>
                     <Button
-                        compact
-                        replace
                         component={Link}
                         fw={600}
-                        size="md"
+                        replace
+                        size="compact-md"
                         state={{ navigationId }}
                         to={{
                             pathname: generatePath(AppRoute.SEARCH, {
@@ -100,11 +102,10 @@ export const SearchHeader = ({ tableRef, navigationId }: SearchHeaderProps) => {
                         {t('entity.album_other', { postProcess: 'sentenceCase' })}
                     </Button>
                     <Button
-                        compact
-                        replace
                         component={Link}
                         fw={600}
-                        size="md"
+                        replace
+                        size="compact-md"
                         state={{ navigationId }}
                         to={{
                             pathname: generatePath(AppRoute.SEARCH, {

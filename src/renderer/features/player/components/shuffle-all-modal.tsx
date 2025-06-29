@@ -1,28 +1,35 @@
-import { useMemo } from 'react';
-import { Divider, Group, SelectItem, Stack } from '@mantine/core';
 import { closeAllModals, openModal } from '@mantine/modals';
 import { QueryClient } from '@tanstack/react-query';
 import merge from 'lodash/merge';
-import { RiAddBoxFill, RiPlayFill, RiAddCircleFill } from 'react-icons/ri';
-import { Button, Checkbox, NumberInput, Select } from '/@/renderer/components';
-import { create } from 'zustand';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { createWithEqualityFn } from 'zustand/traditional';
+
+import i18n from '/@/i18n/i18n';
+import { api } from '/@/renderer/api';
+import { queryKeys } from '/@/renderer/api/query-keys';
+import { useAuthStore } from '/@/renderer/store';
+import { Button } from '/@/shared/components/button/button';
+import { Checkbox } from '/@/shared/components/checkbox/checkbox';
+import { Divider } from '/@/shared/components/divider/divider';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Select } from '/@/shared/components/select/select';
+import { Stack } from '/@/shared/components/stack/stack';
 import {
     GenreListResponse,
-    RandomSongListQuery,
-    MusicFolderListResponse,
-    ServerType,
     GenreListSort,
-    SortOrder,
-    ServerListItem,
+    MusicFolderListResponse,
     Played,
-} from '/@/renderer/api/types';
-import { api } from '/@/renderer/api';
-import { useAuthStore } from '/@/renderer/store';
-import { queryKeys } from '/@/renderer/api/query-keys';
-import { Play, PlayQueueAddOptions } from '/@/renderer/types';
-import i18n from '/@/i18n/i18n';
+    RandomSongListQuery,
+    ServerListItem,
+    ServerType,
+    SortOrder,
+} from '/@/shared/types/domain-types';
+import { Play, PlayQueueAddOptions } from '/@/shared/types/types';
 
 interface ShuffleAllSlice extends RandomSongListQuery {
     actions: {
@@ -32,7 +39,7 @@ interface ShuffleAllSlice extends RandomSongListQuery {
     enableMinYear: boolean;
 }
 
-const useShuffleAllStore = create<ShuffleAllSlice>()(
+const useShuffleAllStore = createWithEqualityFn<ShuffleAllSlice>()(
     persist(
         immer((set, get) => ({
             actions: {
@@ -57,7 +64,7 @@ const useShuffleAllStore = create<ShuffleAllSlice>()(
     ),
 );
 
-const PLAYED_DATA: SelectItem[] = [
+const PLAYED_DATA: { label: string; value: Played }[] = [
     { label: 'all tracks', value: Played.All },
     { label: 'only unplayed tracks', value: Played.Never },
     { label: 'only played tracks', value: Played.Played },
@@ -70,17 +77,18 @@ interface ShuffleAllModalProps {
     handlePlayQueueAdd: ((options: PlayQueueAddOptions) => void) | undefined;
     musicFolders: MusicFolderListResponse | undefined;
     queryClient: QueryClient;
-    server: ServerListItem | null;
+    server: null | ServerListItem;
 }
 
 export const ShuffleAllModal = ({
+    genres,
     handlePlayQueueAdd,
+    musicFolders,
     queryClient,
     server,
-    genres,
-    musicFolders,
 }: ShuffleAllModalProps) => {
-    const { genre, limit, maxYear, minYear, enableMaxYear, enableMinYear, musicFolderId, played } =
+    const { t } = useTranslation();
+    const { enableMaxYear, enableMinYear, genre, limit, maxYear, minYear, musicFolderId, played } =
         useShuffleAllStore();
     const { setStore } = useShuffleAllStoreActions();
 
@@ -138,102 +146,102 @@ export const ShuffleAllModal = ({
     }, [musicFolders]);
 
     return (
-        <Stack spacing="md">
+        <Stack gap="md">
             <NumberInput
-                required
                 label="How many tracks?"
                 max={500}
                 min={1}
-                value={limit}
                 onChange={(e) => setStore({ limit: e ? Number(e) : 500 })}
+                required
+                value={limit}
             />
             <Group grow>
                 <NumberInput
                     label="From year"
                     max={2050}
                     min={1850}
+                    onChange={(e) => setStore({ minYear: e ? Number(e) : 0 })}
                     rightSection={
                         <Checkbox
                             checked={enableMinYear}
-                            mr="0.5rem"
                             onChange={(e) => setStore({ enableMinYear: e.currentTarget.checked })}
+                            style={{ marginRight: '0.5rem' }}
                         />
                     }
                     value={minYear}
-                    onChange={(e) => setStore({ minYear: e ? Number(e) : 0 })}
                 />
 
                 <NumberInput
                     label="To year"
                     max={2050}
                     min={1850}
+                    onChange={(e) => setStore({ maxYear: e ? Number(e) : 0 })}
                     rightSection={
                         <Checkbox
                             checked={enableMaxYear}
-                            mr="0.5rem"
                             onChange={(e) => setStore({ enableMaxYear: e.currentTarget.checked })}
+                            style={{ marginRight: '0.5rem' }}
                         />
                     }
                     value={maxYear}
-                    onChange={(e) => setStore({ maxYear: e ? Number(e) : 0 })}
                 />
             </Group>
             <Select
                 clearable
                 data={genreData}
                 label="Genre"
-                value={genre}
                 onChange={(e) => setStore({ genre: e || '' })}
+                value={genre}
             />
             <Select
                 clearable
                 data={musicFolderData}
                 label="Music folder"
-                value={musicFolderId}
                 onChange={(e) => {
                     setStore({ musicFolderId: e ? String(e) : '' });
                 }}
+                value={musicFolderId}
             />
             {server?.type === ServerType.JELLYFIN && (
                 <Select
                     clearable
                     data={PLAYED_DATA}
                     label="Play filter"
-                    value={played}
                     onChange={(e) => {
                         setStore({ played: e as Played });
                     }}
+                    value={played}
                 />
             )}
             <Divider />
             <Group grow>
                 <Button
                     disabled={!limit}
-                    leftIcon={<RiAddBoxFill size="1rem" />}
+                    leftSection={<Icon icon="mediaPlayLast" />}
+                    onClick={() => handlePlay(Play.LAST)}
                     type="submit"
                     variant="default"
-                    onClick={() => handlePlay(Play.LAST)}
                 >
-                    Add
+                    {t('player.addLast', { postProcess: 'sentenceCase' })}
                 </Button>
                 <Button
                     disabled={!limit}
-                    leftIcon={<RiAddCircleFill size="1rem" />}
+                    leftSection={<Icon icon="mediaPlayNext" />}
+                    onClick={() => handlePlay(Play.NEXT)}
                     type="submit"
                     variant="default"
-                    onClick={() => handlePlay(Play.NEXT)}
                 >
-                    Add next
+                    {t('player.addNext', { postProcess: 'sentenceCase' })}
                 </Button>
             </Group>
             <Button
                 disabled={!limit}
-                leftIcon={<RiPlayFill size="1rem" />}
+                leftSection={<Icon icon="mediaPlay" />}
+                onClick={() => handlePlay(Play.NOW)}
                 type="submit"
                 variant="filled"
-                onClick={() => handlePlay(Play.NOW)}
             >
-                Play
+                {t('player.play', { postProcess: 'sentenceCase' })}
             </Button>
         </Stack>
     );

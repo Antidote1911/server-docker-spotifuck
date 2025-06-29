@@ -1,22 +1,10 @@
-import { hideNotification, showNotification } from '@mantine/notifications';
-import type { NotificationProps as MantineNotificationProps } from '@mantine/notifications';
 import merge from 'lodash/merge';
-import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import type { ClientEvent, ServerEvent, SongUpdateSocket } from '/@/remote/types';
+import { createWithEqualityFn } from 'zustand/traditional';
 
-interface StatefulWebSocket extends WebSocket {
-    natural: boolean;
-}
-
-interface SettingsState {
-    connected: boolean;
-    info: Omit<SongUpdateSocket, 'currentTime'>;
-    isDark: boolean;
-    showImage: boolean;
-    socket?: StatefulWebSocket;
-}
+import { toast } from '/@/shared/components/toast/toast';
+import { ClientEvent, ServerEvent, SongUpdateSocket } from '/@/shared/types/remote-types';
 
 export interface SettingsSlice extends SettingsState {
     actions: {
@@ -27,6 +15,18 @@ export interface SettingsSlice extends SettingsState {
     };
 }
 
+interface SettingsState {
+    connected: boolean;
+    info: Omit<SongUpdateSocket, 'currentTime'>;
+    isDark: boolean;
+    showImage: boolean;
+    socket?: StatefulWebSocket;
+}
+
+interface StatefulWebSocket extends WebSocket {
+    natural: boolean;
+}
+
 const initialState: SettingsState = {
     connected: false,
     info: {},
@@ -34,55 +34,7 @@ const initialState: SettingsState = {
     showImage: true,
 };
 
-interface NotificationProps extends MantineNotificationProps {
-    type?: 'error' | 'warning';
-}
-
-const showToast = ({ type, ...props }: NotificationProps) => {
-    const color = type === 'warning' ? 'var(--warning-color)' : 'var(--danger-color)';
-
-    const defaultTitle = type === 'warning' ? 'Warning' : 'Error';
-
-    const defaultDuration = type === 'error' ? 2000 : 1000;
-
-    return showNotification({
-        autoClose: defaultDuration,
-        styles: () => ({
-            closeButton: {
-                '&:hover': {
-                    background: 'transparent',
-                },
-            },
-            description: {
-                color: 'var(--toast-description-fg)',
-                fontSize: '1rem',
-            },
-            loader: {
-                margin: '1rem',
-            },
-            root: {
-                '&::before': { backgroundColor: color },
-                background: 'var(--toast-bg)',
-                border: '2px solid var(--generic-border-color)',
-                bottom: '90px',
-            },
-            title: {
-                color: 'var(--toast-title-fg)',
-                fontSize: '1.3rem',
-            },
-        }),
-        title: defaultTitle,
-        ...props,
-    });
-};
-
-const toast = {
-    error: (props: NotificationProps) => showToast({ type: 'error', ...props }),
-    hide: hideNotification,
-    warn: (props: NotificationProps) => showToast({ type: 'warning', ...props }),
-};
-
-export const useRemoteStore = create<SettingsSlice>()(
+export const useRemoteStore = createWithEqualityFn<SettingsSlice>()(
     persist(
         devtools(
             immer((set, get) => ({
@@ -106,19 +58,18 @@ export const useRemoteStore = create<SettingsSlice>()(
                             const credentials = await fetch('/credentials');
                             authHeader = await credentials.text();
                         } catch (error) {
-                            console.error('Failed to get credentials');
+                            console.error('Failed to get credentials', error);
                         }
 
                         set((state) => {
                             const socket = new WebSocket(
-                                // eslint-disable-next-line no-restricted-globals
                                 location.href.replace('http', 'ws'),
                             ) as StatefulWebSocket;
 
                             socket.natural = false;
 
                             socket.addEventListener('message', (message) => {
-                                const { event, data } = JSON.parse(message.data) as ServerEvent;
+                                const { data, event } = JSON.parse(message.data) as ServerEvent;
 
                                 switch (event) {
                                     case 'error': {
@@ -207,7 +158,6 @@ export const useRemoteStore = create<SettingsSlice>()(
 
                             socket.addEventListener('close', (reason) => {
                                 if (reason.code === 4002 || reason.code === 4003) {
-                                    // eslint-disable-next-line no-restricted-globals
                                     location.reload();
                                 } else if (reason.code === 4000) {
                                     toast.warn({

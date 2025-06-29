@@ -1,6 +1,7 @@
-import { ipcMain, nativeTheme, safeStorage } from 'electron';
+import type { TitleTheme } from '/@/shared/types/types';
+
+import { dialog, ipcMain, nativeTheme, OpenDialogOptions, safeStorage } from 'electron';
 import Store from 'electron-store';
-import type { TitleTheme } from '/@/renderer/types';
 
 export const store = new Store();
 
@@ -12,7 +13,7 @@ ipcMain.on('settings-set', (__event, data: { property: string; value: any }) => 
     store.set(`${data.property}`, data.value);
 });
 
-ipcMain.handle('password-get', (_event, server: string): string | null => {
+ipcMain.handle('password-get', (_event, server: string): null | string => {
     if (safeStorage.isEncryptionAvailable()) {
         const servers = store.get('server') as Record<string, string> | undefined;
 
@@ -53,4 +54,13 @@ ipcMain.handle('password-set', (_event, password: string, server: string) => {
 ipcMain.on('theme-set', (_event, theme: TitleTheme) => {
     store.set('theme', theme);
     nativeTheme.themeSource = theme;
+});
+
+ipcMain.handle('open-file-selector', async (_event, options: OpenDialogOptions) => {
+    const result = await dialog.showOpenDialog({
+        ...options,
+        properties: ['openFile'],
+    });
+
+    return result.filePaths[0] || null;
 });

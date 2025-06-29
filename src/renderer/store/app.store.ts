@@ -1,8 +1,32 @@
 import merge from 'lodash/merge';
-import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { Platform } from '/@/renderer/types';
+import { createWithEqualityFn } from 'zustand/traditional';
+
+import { Platform } from '/@/shared/types/types';
+
+export interface AppSlice extends AppState {
+    actions: {
+        setAppStore: (data: Partial<AppSlice>) => void;
+        setSideBar: (options: Partial<SidebarProps>) => void;
+        setTitleBar: (options: Partial<TitlebarProps>) => void;
+    };
+}
+
+export interface AppState {
+    commandPalette: CommandPaletteProps;
+    isReorderingQueue: boolean;
+    platform: Platform;
+    sidebar: SidebarProps;
+    titlebar: TitlebarProps;
+}
+
+type CommandPaletteProps = {
+    close: () => void;
+    open: () => void;
+    opened: boolean;
+    toggle: () => void;
+};
 
 type SidebarProps = {
     collapsed: boolean;
@@ -18,30 +42,7 @@ type TitlebarProps = {
     outOfView: boolean;
 };
 
-type CommandPaletteProps = {
-    close: () => void;
-    open: () => void;
-    opened: boolean;
-    toggle: () => void;
-};
-
-export interface AppState {
-    commandPalette: CommandPaletteProps;
-    isReorderingQueue: boolean;
-    platform: Platform;
-    sidebar: SidebarProps;
-    titlebar: TitlebarProps;
-}
-
-export interface AppSlice extends AppState {
-    actions: {
-        setAppStore: (data: Partial<AppSlice>) => void;
-        setSideBar: (options: Partial<SidebarProps>) => void;
-        setTitleBar: (options: Partial<TitlebarProps>) => void;
-    };
-}
-
-export const useAppStore = create<AppSlice>()(
+export const useAppStore = createWithEqualityFn<AppSlice>()(
     persist(
         devtools(
             immer((set, get) => ({

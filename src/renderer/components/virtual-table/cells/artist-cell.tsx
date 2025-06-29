@@ -1,18 +1,20 @@
-import React from 'react';
+import type { AlbumArtist, Artist } from '/@/shared/types/domain-types';
 import type { ICellRendererParams } from '@ag-grid-community/core';
+
+import React from 'react';
 import { generatePath } from 'react-router';
 import { Link } from 'react-router-dom';
-import type { AlbumArtist, Artist } from '/@/renderer/api/types';
-import { Text } from '/@/renderer/components/text';
+
 import { CellContainer } from '/@/renderer/components/virtual-table/cells/generic-cell';
 import { AppRoute } from '/@/renderer/router/routes';
-import { Skeleton } from '/@/renderer/components/skeleton';
-import { Separator } from '/@/renderer/components/separator';
+import { Separator } from '/@/shared/components/separator/separator';
+import { Skeleton } from '/@/shared/components/skeleton/skeleton';
+import { Text } from '/@/shared/components/text/text';
 
-export const ArtistCell = ({ value, data }: ICellRendererParams) => {
+export const ArtistCell = ({ data, value }: ICellRendererParams) => {
     if (value === undefined) {
         return (
-            <CellContainer $position="left">
+            <CellContainer position="left">
                 <Skeleton
                     height="1rem"
                     width="80%"
@@ -22,20 +24,20 @@ export const ArtistCell = ({ value, data }: ICellRendererParams) => {
     }
 
     return (
-        <CellContainer $position="left">
+        <CellContainer position="left">
             <Text
-                $secondary
+                isMuted
                 overflow="hidden"
                 size="md"
             >
-                {value?.map((item: Artist | AlbumArtist, index: number) => (
+                {value?.map((item: AlbumArtist | Artist, index: number) => (
                     <React.Fragment key={`row-${item.id}-${data.uniqueId}`}>
                         {index > 0 && <Separator />}
                         {item.id ? (
                             <Text
-                                $link
-                                $secondary
                                 component={Link}
+                                isLink
+                                isMuted
                                 overflow="hidden"
                                 size="md"
                                 to={generatePath(AppRoute.LIBRARY_ALBUM_ARTISTS_DETAIL, {
@@ -46,7 +48,7 @@ export const ArtistCell = ({ value, data }: ICellRendererParams) => {
                             </Text>
                         ) : (
                             <Text
-                                $secondary
+                                isMuted
                                 overflow="hidden"
                                 size="md"
                             >

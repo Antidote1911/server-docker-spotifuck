@@ -1,23 +1,17 @@
-import { Grid, Group } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { RiSearchLine, RiMenuFill, RiArrowLeftSLine, RiArrowRightSLine } from 'react-icons/ri';
 import { useNavigate } from 'react-router';
-import styled from 'styled-components';
-import { Button, DropdownMenu, TextInput } from '/@/renderer/components';
+
+import styles from './action-bar.module.css';
+
 import { AppMenu } from '/@/renderer/features/titlebar/components/app-menu';
 import { useContainerQuery } from '/@/renderer/hooks';
 import { useCommandPalette } from '/@/renderer/store';
-
-const ActionsContainer = styled.div`
-    display: flex;
-    align-items: center;
-    height: 70px;
-    -webkit-app-region: drag;
-
-    input {
-        -webkit-app-region: no-drag;
-    }
-`;
+import { Button } from '/@/shared/components/button/button';
+import { DropdownMenu } from '/@/shared/components/dropdown-menu/dropdown-menu';
+import { Grid } from '/@/shared/components/grid/grid';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+import { TextInput } from '/@/shared/components/text-input/text-input';
 
 export const ActionBar = () => {
     const { t } = useTranslation();
@@ -26,114 +20,60 @@ export const ActionBar = () => {
     const { open } = useCommandPalette();
 
     return (
-        <ActionsContainer ref={cq.ref}>
-            {cq.isMd ? (
-                <Grid
-                    display="flex"
-                    gutter="sm"
-                    px="1rem"
-                    w="100%"
-                >
-                    <Grid.Col span={6}>
-                        <TextInput
-                            readOnly
-                            icon={<RiSearchLine />}
-                            placeholder={t('common.search', { postProcess: 'titleCase' })}
-                            size="md"
-                            onClick={open}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    open();
-                                }
-                            }}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={6}>
-                        <Group
-                            grow
-                            noWrap
-                            spacing="sm"
-                        >
-                            <DropdownMenu position="bottom-start">
-                                <DropdownMenu.Target>
-                                    <Button
-                                        p="0.5rem"
-                                        size="md"
-                                        variant="default"
-                                    >
-                                        <RiMenuFill size="1rem" />
-                                    </Button>
-                                </DropdownMenu.Target>
-                                <DropdownMenu.Dropdown>
-                                    <AppMenu />
-                                </DropdownMenu.Dropdown>
-                            </DropdownMenu>
-                            <Button
-                                p="0.5rem"
-                                size="md"
-                                variant="default"
-                                onClick={() => navigate(-1)}
-                            >
-                                <RiArrowLeftSLine size="1.5rem" />
-                            </Button>
-                            <Button
-                                p="0.5rem"
-                                size="md"
-                                variant="default"
-                                onClick={() => navigate(1)}
-                            >
-                                <RiArrowRightSLine size="1.5rem" />
-                            </Button>
-                        </Group>
-                    </Grid.Col>
-                </Grid>
-            ) : (
-                <Group
-                    grow
-                    px="1rem"
-                    spacing="sm"
-                    w="100%"
-                >
-                    <Button
-                        p="0.5rem"
-                        size="md"
-                        variant="default"
+        <div
+            className={styles.container}
+            ref={cq.ref}
+        >
+            <Grid
+                display="flex"
+                gutter="sm"
+                px="1rem"
+                w="100%"
+            >
+                <Grid.Col span={6}>
+                    <TextInput
+                        leftSection={<Icon icon="search" />}
                         onClick={open}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                open();
+                            }
+                        }}
+                        placeholder={t('common.search', { postProcess: 'titleCase' })}
+                        readOnly
+                    />
+                </Grid.Col>
+                <Grid.Col span={6}>
+                    <Group
+                        gap="sm"
+                        grow
+                        wrap="nowrap"
                     >
-                        <RiSearchLine size="1rem" />
-                    </Button>
-                    <DropdownMenu position="bottom-start">
-                        <DropdownMenu.Target>
-                            <Button
-                                p="0.5rem"
-                                size="md"
-                                variant="default"
-                            >
-                                <RiMenuFill size="1rem" />
-                            </Button>
-                        </DropdownMenu.Target>
-                        <DropdownMenu.Dropdown>
-                            <AppMenu />
-                        </DropdownMenu.Dropdown>
-                    </DropdownMenu>
-                    <Button
-                        p="0.5rem"
-                        size="md"
-                        variant="default"
-                        onClick={() => navigate(-1)}
-                    >
-                        <RiArrowLeftSLine size="1.5rem" />
-                    </Button>
-                    <Button
-                        p="0.5rem"
-                        size="md"
-                        variant="default"
-                        onClick={() => navigate(1)}
-                    >
-                        <RiArrowRightSLine size="1.5rem" />
-                    </Button>
-                </Group>
-            )}
-        </ActionsContainer>
+                        <DropdownMenu position="bottom-start">
+                            <DropdownMenu.Target>
+                                <Button p="0.5rem">
+                                    <Icon icon="menu" />
+                                </Button>
+                            </DropdownMenu.Target>
+                            <DropdownMenu.Dropdown>
+                                <AppMenu />
+                            </DropdownMenu.Dropdown>
+                        </DropdownMenu>
+                        <Button
+                            onClick={() => navigate(-1)}
+                            p="0.5rem"
+                        >
+                            <Icon icon="arrowLeftS" />
+                        </Button>
+                        <Button
+                            onClick={() => navigate(1)}
+                            p="0.5rem"
+                        >
+                            <Icon icon="arrowRightS" />
+                        </Button>
+                    </Group>
+                </Grid.Col>
+            </Grid>
+        </div>
     );
 };

@@ -1,11 +1,18 @@
-import { ChangeEvent, useMemo } from 'react';
-import { Divider, Group, Stack } from '@mantine/core';
 import debounce from 'lodash/debounce';
-import { GenreListSort, LibraryItem, SongListQuery, SortOrder } from '/@/renderer/api/types';
-import { NumberInput, Select, Switch, Text } from '/@/renderer/components';
-import { useGenreList } from '/@/renderer/features/genres';
-import { SongListFilter, useListFilterByKey, useListStoreActions } from '/@/renderer/store';
+import { ChangeEvent, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { SelectWithInvalidData } from '/@/renderer/components/select-with-invalid-data';
+import { useGenreList } from '/@/renderer/features/genres';
+import { useTagList } from '/@/renderer/features/tag/queries/use-tag-list';
+import { SongListFilter, useListFilterByKey, useListStoreActions } from '/@/renderer/store';
+import { Divider } from '/@/shared/components/divider/divider';
+import { Group } from '/@/shared/components/group/group';
+import { NumberInput } from '/@/shared/components/number-input/number-input';
+import { Stack } from '/@/shared/components/stack/stack';
+import { Switch } from '/@/shared/components/switch/switch';
+import { Text } from '/@/shared/components/text/text';
+import { GenreListSort, LibraryItem, SongListQuery, SortOrder } from '/@/shared/types/domain-types';
 
 interface NavidromeSongFiltersProps {
     customFilters?: Partial<SongListFilter>;
@@ -35,6 +42,13 @@ export const NavidromeSongFilters = ({
         serverId,
     });
 
+    const tagsQuery = useTagList({
+        query: {
+            type: LibraryItem.SONG,
+        },
+        serverId,
+    });
+
     const genreList = useMemo(() => {
         if (!genreListQuery?.data) return [];
         return genreListQuery.data.items.map((genre) => ({
@@ -43,12 +57,31 @@ export const NavidromeSongFilters = ({
         }));
     }, [genreListQuery.data]);
 
-    const handleGenresFilter = debounce((e: string | null) => {
+    const handleGenresFilter = debounce((e: null | string) => {
         const updatedFilters = setFilter({
             customFilters,
             data: {
                 _custom: filter._custom,
                 genreIds: e ? [e] : undefined,
+            },
+            itemType: LibraryItem.SONG,
+            key: pageKey,
+        }) as SongListFilter;
+
+        onFilterChange(updatedFilters);
+    }, 250);
+
+    const handleTagFilter = debounce((tag: string, e: null | string) => {
+        const updatedFilters = setFilter({
+            customFilters,
+            data: {
+                _custom: {
+                    ...filter._custom,
+                    navidrome: {
+                        ...filter._custom?.navidrome,
+                        [tag]: e || undefined,
+                    },
+                },
             },
             itemType: LibraryItem.SONG,
             key: pageKey,
@@ -84,6 +117,7 @@ export const NavidromeSongFilters = ({
                 _custom: {
                     ...filter._custom,
                     navidrome: {
+                        ...filter._custom?.navidrome,
                         year: e === '' ? undefined : (e as number),
                     },
                 },
@@ -99,14 +133,14 @@ export const NavidromeSongFilters = ({
         <Stack p="0.8rem">
             {toggleFilters.map((filter) => (
                 <Group
+                    justify="space-between"
                     key={`nd-filter-${filter.label}`}
-                    position="apart"
                 >
                     <Text>{filter.label}</Text>
                     <Switch
                         checked={filter?.value || false}
-                        size="xs"
                         onChange={filter.onChange}
+                        size="xs"
                     />
                 </Group>
             ))}
@@ -116,22 +150,41 @@ export const NavidromeSongFilters = ({
                     label={t('common.year', { postProcess: 'titleCase' })}
                     max={5000}
                     min={0}
+                    onChange={(e) => handleYearFilter(e)}
                     value={filter._custom?.navidrome?.year}
                     width={50}
-                    onChange={(e) => handleYearFilter(e)}
                 />
                 {!isGenrePage && (
-                    <Select
+                    <SelectWithInvalidData
                         clearable
-                        searchable
                         data={genreList}
                         defaultValue={filter.genreIds ? filter.genreIds[0] : undefined}
                         label={t('entity.genre', { count: 1, postProcess: 'titleCase' })}
-                        width={150}
                         onChange={handleGenresFilter}
+                        searchable
+                        width={150}
                     />
                 )}
             </Group>
+            {tagsQuery.data?.enumTags?.length &&
+                tagsQuery.data.enumTags.map((tag) => (
+                    <Group
+                        grow
+                        key={tag.name}
+                    >
+                        <SelectWithInvalidData
+                            clearable
+                            data={tag.options}
+                            defaultValue={
+                                filter._custom?.navidrome?.[tag.name] as string | undefined
+                            }
+                            label={tag.name}
+                            onChange={(value) => handleTagFilter(tag.name, value)}
+                            searchable
+                            width={150}
+                        />
+                    </Group>
+                ))}
         </Stack>
     );
 };

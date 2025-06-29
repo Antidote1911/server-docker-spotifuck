@@ -1,10 +1,16 @@
 import merge from 'lodash/merge';
-import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { createWithEqualityFn } from 'zustand/traditional';
+
+export interface FullScreenPlayerSlice extends FullScreenPlayerState {
+    actions: {
+        setStore: (data: Partial<FullScreenPlayerSlice>) => void;
+    };
+}
 
 interface FullScreenPlayerState {
-    activeTab: string | 'queue' | 'related' | 'lyrics';
+    activeTab: 'lyrics' | 'queue' | 'related' | string;
     dynamicBackground?: boolean;
     dynamicImageBlur: number;
     dynamicIsImage?: boolean;
@@ -13,13 +19,7 @@ interface FullScreenPlayerState {
     useImageAspectRatio: boolean;
 }
 
-export interface FullScreenPlayerSlice extends FullScreenPlayerState {
-    actions: {
-        setStore: (data: Partial<FullScreenPlayerSlice>) => void;
-    };
-}
-
-export const useFullScreenPlayerStore = create<FullScreenPlayerSlice>()(
+export const useFullScreenPlayerStore = createWithEqualityFn<FullScreenPlayerSlice>()(
     persist(
         devtools(
             immer((set, get) => ({

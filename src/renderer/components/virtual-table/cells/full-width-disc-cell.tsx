@@ -1,20 +1,14 @@
-import { useState } from 'react';
 import { ICellRendererParams } from '@ag-grid-community/core';
-import { Group } from '@mantine/core';
-import { RiCheckboxBlankLine, RiCheckboxLine } from 'react-icons/ri';
-import styled from 'styled-components';
-import { Button } from '/@/renderer/components/button';
-import { Paper } from '/@/renderer/components/paper';
-import { getNodesByDiscNumber, setNodeSelection } from '../utils';
+import { useState } from 'react';
 
-const Container = styled(Paper)`
-    display: flex;
-    height: 100%;
-    padding: 0.5rem 1rem;
-    border: 1px solid transparent;
-`;
+import styles from './full-width-disc-cell.module.css';
 
-export const FullWidthDiscCell = ({ node, data, api }: ICellRendererParams) => {
+import { getNodesByDiscNumber, setNodeSelection } from '/@/renderer/components/virtual-table/utils';
+import { Button } from '/@/shared/components/button/button';
+import { Group } from '/@/shared/components/group/group';
+import { Icon } from '/@/shared/components/icon/icon';
+
+export const FullWidthDiscCell = ({ api, data, node }: ICellRendererParams) => {
     const [isSelected, setIsSelected] = useState(false);
 
     const handleToggleDiscNodes = () => {
@@ -30,21 +24,20 @@ export const FullWidthDiscCell = ({ node, data, api }: ICellRendererParams) => {
     };
 
     return (
-        <Container>
+        <div className={styles.container}>
             <Group
-                position="apart"
+                justify="space-between"
                 w="100%"
             >
                 <Button
-                    compact
-                    leftIcon={isSelected ? <RiCheckboxLine /> : <RiCheckboxBlankLine />}
-                    size="md"
-                    variant="subtle"
+                    leftSection={isSelected ? <Icon icon="squareCheck" /> : <Icon icon="square" />}
                     onClick={handleToggleDiscNodes}
+                    size="compact-md"
+                    variant="subtle"
                 >
                     {data.name}
                 </Button>
             </Group>
-        </Container>
+        </div>
     );
 };
